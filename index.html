@@ -74,9 +74,9 @@
         markup = [];
         for (n = 0; n < result.length; n=n+2) {
             // read 2 bytes
-            aByte = result.charCodeAt(n)+result.charCodeAt(n+1);
-            byteStr = parseInt(aByte.toString(16), 16);
-            markup.push(byteStr);
+            aByte = String(result.charCodeAt(n))+String(result.charCodeAt(n+1));
+            byteStr = parseInt(aByte);
+            markup.push(aByte);
         }
 
         var dim = inf['frame dimensions'].split('x');
@@ -97,7 +97,6 @@
         rainbow.setSpectrum('black', 'grey', 'white');
 
         function toColor(n) {
-            n = math.round(n * numCol-1)+1;
 
             var hexColour = rainbow.colourAt(n);
             s = '#' + hexColour;
@@ -111,9 +110,11 @@
 
         for(var i = 0; i < mat.length; i++) {
             for(var j = 0; j < mat[i].length; j++) {
-                var value = mat[i][j]
-                var color = toColor((value - min)/max)
-                m.push({x:i, y:j, value:value, color:color})
+                var raw = mat[i][j]
+                var value = (raw - min)/max;
+                value = math.round(value * numCol);
+                var color = toColor(value)
+                m.push({x:i, y:j, raw:raw, value:value, color:color})
             }
         }
         return(m)
@@ -178,6 +179,9 @@ function draw() {
         labels: {
           enabled: false
         }
+      },
+      tooltip: {
+        pointFormat: '{point.x}:{point.y}<br>{point.raw}<br>{point.value}<br>{point.color}'
       },
   })
 }
