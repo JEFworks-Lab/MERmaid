@@ -20,11 +20,17 @@
 	 var foo;
 
 	 // File readers
-	 function loadFile(id) {
+	 function loadMultipleFiles(id) {
              var input = document.getElementById(id);
-             var file = input.files[0];
-             console.log(file);
 
+	     for(var i = 0; i < input.files.length; i++) {
+		 var file = input.files[i];
+		 console.log(file);
+		 loadFile(file);
+	     }
+
+	 }
+	 function loadFile(file) {
 	     var filename = file.name.split('.');
 	     var ext = filename.pop();
 	     filename = filename.join('_');
@@ -207,7 +213,7 @@
 
 	<form action='#' onsubmit="return false;">
 	    <input type='file' id='fileinput' multiple>
-	    <input type='button' id='btnLoad' value='Load' onclick='loadFile("fileinput")'>
+	    <input type='button' id='btnLoad' value='Load' onclick='loadMultipleFiles("fileinput")'>
 	</form>
 	
 	<br>
