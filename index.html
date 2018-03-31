@@ -1,210 +1,231 @@
 <!DOCTYPE HTML>
 <html>
-<head>
+    <head>
 
-<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script> 
-<script src="js/math.js" type="text/javascript"></script>
-<script src="js/rainbowvis.js" type="text/javascript"></script>
+	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="js/math.js" type="text/javascript"></script>
+	<script src="js/rainbowvis.js" type="text/javascript"></script>
 
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="https://code.highcharts.com/modules/heatmap.js"></script>
-<script src="https://code.highcharts.com/modules/exporting.js"></script>
-<script src="https://code.highcharts.com/modules/data.js"></script>
-<script src="https://code.highcharts.com/modules/boost-canvas.js"></script>
-<script src="https://code.highcharts.com/modules/boost.js"></script>
+	<script src="https://code.highcharts.com/highcharts.js"></script>
+	<script src="https://code.highcharts.com/modules/heatmap.js"></script>
+	<script src="https://code.highcharts.com/modules/exporting.js"></script>
+	<script src="https://code.highcharts.com/modules/data.js"></script>
+	<script src="https://code.highcharts.com/modules/boost-canvas.js"></script>
+	<script src="https://code.highcharts.com/modules/boost.js"></script>
 
-<script type='text/javascript'>
-    var inf;
-    var dax;
-    var foo;
+	<script type='text/javascript'>
+	 // Globals
+	 var inf = {};
+	 var dax = {};
+	 var foo;
 
-    function loadInfFile(id) {
-        var input, file, fr;
-        input = document.getElementById(id);
+	 // File readers
+	 function loadFile(id) {
+             var input = document.getElementById(id);
+             var file = input.files[0];
+             console.log(file);
 
-        file = input.files[0];
-        console.log(file);
-        
-        fr = new FileReader();
-        fr.onload = processInf;
-        fr.readAsText(file);
+	     var filename = file.name.split('.');
+	     var ext = filename.pop();
+	     filename = filename.join('_');
 
-        function processInf() {
-            parseInf(fr);
-        }
-    }
+	     if(ext == 'inf') {
+		 loadInfFile(file, filename);
+	     } else if(ext == 'dax') {
+		 if( inf[filename] === undefined ) {
+		     alert("Corresponding .inf file for " + filename + " must be uploaded first");
+		 } else {
+		     loadDaxFile(file, filename);
+		 }
+	     } else {
+		 alert("Unrecognized file extension: " + ext);
+	     }
+	 }
+	 function loadInfFile(file, filename) {
+             var fr = new FileReader();
+             fr.onload = processInf;
+             fr.readAsText(file);
 
-    function parseInf(fr) {
-        var result = fr.result.split(/\n/);
-        // parse into dictionary
-        var dict = new Object();
-        dict[result[0].trim()] = result[1].trim();
-        for(var i = 2; i < (result.length-1); i++) {
-            var resulti = result[i].split('=');
-            dict[resulti[0].trim()] = resulti[1].trim();
-        }
-        // set global
-        inf = dict;
-    }
+             function processInf() {
+		 parseInf(fr, filename);
+             }
+	 }
+	 function loadDaxFile(file, filename) {
+	     var fr = new FileReader();
+	     fr.onload = processDax
+	     fr.readAsArrayBuffer(file);
+
+             function processDax() {
+		 parseDax(fr, filename);
+             }
+	 }
+
+	 // File parsers
+	 function parseInf(fr, filename) {
+             var result = fr.result.split(/\n/);
+             // parse into dictionary
+             var dict = new Object();
+             dict[result[0].trim()] = result[1].trim();
+             for(var i = 2; i < (result.length-1); i++) {
+		 var resulti = result[i].split('=');
+		 dict[resulti[0].trim()] = resulti[1].trim();
+             }
+             // set global
+             inf[filename] = dict;
+	     // Record
+	     record('loadedInfFiles', filename); 
+	 }
+	 function parseDax(fr, filename) {
+             var markup, result, n, aByte, byteStr, data;
+
+	     // complicated way to read big endian binary data
+	     var data = new DataView(fr.result)
+	     var tempArray = new Uint16Array(data.byteLength / Uint16Array.BYTES_PER_ELEMENT);
+	     var len = tempArray.length;
+	     for (var jj = 0; jj < len; ++jj) {
+		 tempArray[jj] = data.getUint16(jj * Uint16Array.BYTES_PER_ELEMENT, false); // set to big endian (true is little endian)
+	     }
+	     result = Array.from(tempArray);
+	     foo = result;
+
+             var dim = inf[filename]['frame dimensions'].split('x');
+             var numRow = parseInt(dim[0])
+             var numCol = parseInt(dim[1])
+             var data = math.reshape(result, [numRow, numCol]);
+
+             // set global
+             dax[filename] = melt(data);
+
+	     // Record
+	     record('loadedDaxFiles', filename); 
+	 }
+
+	 // Helper functions
+	 function melt(mat) {
+	     // Convert matrix to melted reshaped format for plotting
+             var numCol = 100;
+             var rainbow = new Rainbow();
+             rainbow.setNumberRange(0, numCol);
+             rainbow.setSpectrum('black', 'grey', 'white');
+
+             function toColor(n) {
+
+		 var hexColour = rainbow.colourAt(n);
+		 s = '#' + hexColour;
+
+		 return(s)
+             }
+
+             var m = [];
+             var min = math.min(mat)
+             var max = math.max(mat) - min
+
+             for(var i = 0; i < mat.length; i++) {
+		 for(var j = 0; j < mat[i].length; j++) {
+                     var raw = mat[i][j]
+                     var value = (raw - min)/max;
+                     value = math.round(value * numCol);
+                     var color = toColor(value)
+                     m.push({x:i, y:j, raw:raw, value:value, color:color})
+		 }
+             }
+             return(m)
+	 }
+	 // Record
+	 function record(id, filename) {
+	     document.getElementById(id).insertAdjacentHTML('beforeend', '<br><input type="checkbox" id=' + filename + ' value=' + filename + '><label for=' + filename + '>' + filename + '</label>');
+	 }
+
+	 // Draw
+	 function draw(file) {
+	     $('#container').highcharts({
+		 chart: {
+		     zoomType: 'xy'
+		 },
+		 title: {
+		     text: null
+		 },
+		 exporting: {
+		     enabled: false
+		 },
+		 plotOptions: {
+		     series: {
+			 turboThreshold: 0,
+			 showInLegend: {
+			     x: {},
+			     y: {},
+			     value: {}
+			 },
+			 boderWidth: 0,
+			 dataLabels: {
+			     enabled: false
+			 }
+		     }
+		 },
+		 series: [
+		     {
+			 data: dax[file],
+			 type: "heatmap",
+			 showInLegend: false
+		     }
+		 ],
+		 xAxis: {
+		     min: 0,
+		     max: 256,
+		     title: {
+			 text: null
+		     },
+		     labels: {
+			 enabled: false
+		     },
+		     lineWidth: 0,
+		     minorGridLineWidth: 0,
+		     lineColor: 'transparent',
+		     minorTickLength: 0,
+		     tickLength: 0
+		 },
+		 yAxis: {
+		     min: 0,
+		     max: 256,
+		     title: {
+			 text: null
+		     },
+		     labels: {
+			 enabled: false
+		     }
+		 },
+		 tooltip: {
+		     pointFormat: '{point.x}:{point.y}<br>{point.raw}<br>{point.value}<br>{point.color}'
+		 },
+	     })
+	 }
+	</script>
 
 
-    function loadDaxFile(id) {
-        var input, file, fr;
-        input = document.getElementById(id);
+    </head>
+    <body>
 
-        file = input.files[0];
-        console.log(file);
-
-	fr = new FileReader();
-	fr.onload = processDax, 
-	fr.readAsArrayBuffer(file);
+	<form action='#' onsubmit="return false;">
+	    <input type='file' id='fileinput' multiple>
+	    <input type='button' id='btnLoad' value='Load' onclick='loadFile("fileinput")'>
+	</form>
 	
-        function processDax() {
-            parseDax(fr);
-        }
-    }
+	<br>
+	<br>
 
-    function parseDax(fr) {
-        var markup, result, n, aByte, byteStr, data;
-
-	// complicated way to read big endian binary data
-	var data = new DataView(fr.result)
-	var tempArray = new Uint16Array(data.byteLength / Uint16Array.BYTES_PER_ELEMENT);
-	var len = tempArray.length;
-	for (var jj = 0; jj < len; ++jj) {
-	    tempArray[jj] = data.getUint16(jj * Uint16Array.BYTES_PER_ELEMENT, false); // set to big endian (true is little endian)
-	}
-	result = Array.from(tempArray);
-	foo = result;
+	<div id="loadedInfFiles">Inf Files:
+	</div>
+	<div id="loadedDaxFiles">Dax Files:
+	</div>
 	
-        var dim = inf['frame dimensions'].split('x');
-        var numRow = parseInt(dim[0])
-        var numCol = parseInt(dim[1])
-        var data = math.reshape(result, [numRow, numCol]);
+	<br>
+	<br>
 
-        // set global
-        dax = melt(data);
-    }
-
-    // convert matrix to melted reshaped format for highcharter
-    function melt(mat) {
-
-        var numCol = 100;
-        var rainbow = new Rainbow(); 
-        rainbow.setNumberRange(0, numCol);
-        rainbow.setSpectrum('black', 'grey', 'white');
-
-        function toColor(n) {
-
-            var hexColour = rainbow.colourAt(n);
-            s = '#' + hexColour;
-
-            return(s)
-        }
-
-        var m = [];
-        var min = math.min(mat)
-        var max = math.max(mat) - min
-
-        for(var i = 0; i < mat.length; i++) {
-            for(var j = 0; j < mat[i].length; j++) {
-                var raw = mat[i][j]
-                var value = (raw - min)/max;
-                value = math.round(value * numCol);
-                var color = toColor(value)
-                m.push({x:i, y:j, raw:raw, value:value, color:color})
-            }
-        }
-        return(m)
-    }
-
-</script>
-
-<script>
-function draw() {
-  $('#container').highcharts({
-    chart: {
-        zoomType: 'xy'
-    },
-    title: {
-        text: null
-    },
-    exporting: {
-        enabled: false
-    },
-    plotOptions: {
-        series: {
-          turboThreshold: 0,
-          showInLegend: {
-            x: {},
-            y: {},
-            value: {}
-          },
-          boderWidth: 0,
-          dataLabels: {
-            enabled: false
-          }
-        }
-      },
-      series: [
-        {
-          data: dax,
-          type: "heatmap",          
-          showInLegend: false
-        }
-      ],
-      xAxis: {
-        min: 0,
-        max: 256,
-        title: {
-          text: null
-        },
-        labels: {
-          enabled: false
-        },
-        lineWidth: 0,
-        minorGridLineWidth: 0,
-        lineColor: 'transparent',
-        minorTickLength: 0,
-        tickLength: 0
-      },      
-      yAxis: {
-        min: 0,
-        max: 256,
-        title: {
-          text: null
-        },
-        labels: {
-          enabled: false
-        }
-      },
-      tooltip: {
-        pointFormat: '{point.x}:{point.y}<br>{point.raw}<br>{point.value}<br>{point.color}'
-      },
-  })
-}
-</script>
+	
+	<input type='button' id='btnDraw' value='Draw' onclick='draw(document.querySelectorAll("input:checked")[0].value)'>
+	<br>
+	<div id="container" style="height: 1000px; width: 1000px; margin: 0 auto"></div>
 
 
-</head>
-<body>
-
-    Inf: <br>
-    <form action='#' onsubmit="return false;">
-    <input type='file' id='fileinput1'>
-    <input type='button' id='btnLoad1' value='Load' onclick='loadInfFile("fileinput1")'>
-    <br>
-    Dax: <br>
-    <form action='#' onsubmit="return false;">
-    <input type='file' id='fileinput2'>
-    <input type='button' id='btnLoad2' value='Load' onclick='loadDaxFile("fileinput2")'>
-    <br><br>
-
-    <input type='button' id='btnLoad3' value='Draw' onclick='draw()'>
-    <br>
-    <div id="container" style="height: 1000px; width: 1000px; margin: 0 auto"></div>
-
-
-</form>
-</body>
+    </body>
 </html>
