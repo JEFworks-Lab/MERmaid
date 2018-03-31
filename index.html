@@ -14,6 +14,8 @@
 	<script src="https://code.highcharts.com/modules/boost.js"></script>
 
 	<script type='text/javascript'>
+	 var little_endianness = true;
+	 
 	 // Globals
 	 var inf = {};
 	 var dax = {};
@@ -84,59 +86,23 @@
 	 function parseDax(fr, filename) {
              var markup, result, n, aByte, byteStr, data;
 
-	     // complicated way to read big endian binary data
+	     foo = fr.result
+	     
+	     // complicated way to read both big endian and little endian binary data
 	     var data = new DataView(fr.result)
 	     var tempArray = new Uint16Array(data.byteLength / Uint16Array.BYTES_PER_ELEMENT);
 	     var len = tempArray.length;
 	     for (var jj = 0; jj < len; ++jj) {
-		 tempArray[jj] = data.getUint16(jj * Uint16Array.BYTES_PER_ELEMENT, false); // set to big endian (true is little endian)
+		 tempArray[jj] = data.getUint16(jj * Uint16Array.BYTES_PER_ELEMENT, little_endianness); 
 	     }
-	     result = Array.from(tempArray);
-	     foo = result;
-
-             var dim = inf[filename]['frame dimensions'].split('x');
-             var numRow = parseInt(dim[0])
-             var numCol = parseInt(dim[1])
-             var data = math.reshape(result, [numRow, numCol]);
-
-             // set global
-             dax[filename] = melt(data);
-
+	     
+	     // set global
+	     dax[filename] = tempArray;
+	     
 	     // Record
 	     record('loadedDaxFiles', filename); 
 	 }
-	 
-	 // Helper functions
-	 function melt(mat) {
-	     // Convert matrix to melted reshaped format for plotting
-             var numCol = 100;
-             var rainbow = new Rainbow();
-             rainbow.setNumberRange(0, numCol);
-             rainbow.setSpectrum('black', 'grey', 'white');
 
-             function toColor(n) {
-
-		 var hexColour = rainbow.colourAt(n);
-		 s = '#' + hexColour;
-
-		 return(s)
-             }
-
-             var m = [];
-             var min = math.min(mat)
-             var max = math.max(mat) - min
-
-             for(var i = 0; i < mat.length; i++) {
-		 for(var j = 0; j < mat[i].length; j++) {
-                     var raw = mat[i][j]
-                     var value = (raw - min)/max;
-                     value = math.round(value * numCol);
-                     var color = toColor(value)
-                     m.push({x:i, y:j, raw:raw, value:value, color:color})
-		 }
-             }
-             return(m)
-	 }
 	 // Record
 	 function record(id, filename) {
 	     document.getElementById(id).insertAdjacentHTML('beforeend', '<div><input type="checkbox" id=' + filename + ' value=' + filename + '><label for=' + filename + '>' + filename + ' </label><a href="#" class="delete_upload">(remove)</a></div>');
@@ -152,70 +118,31 @@
 	 });
 
 	 // Draw
-	 function draw(file) {
-	     console.log('Drawing: ' + file);
+	 function drawCanvas(filename) {
+	     var dim = inf[filename]['frame dimensions'].split('x')
+	     var numCol = parseInt(dim[0])
+	     var numRow = parseInt(dim[1])
+	     var numPixels = numRow*numCol
+	     var pixelData = dax[filename]
 	     
-	     $('#container').highcharts({
-		 chart: {
-		     zoomType: 'xy'
-		 },
-		 title: {
-		     text: null
-		 },
-		 exporting: {
-		     enabled: false
-		 },
-		 plotOptions: {
-		     series: {
-			 turboThreshold: 0,
-			 showInLegend: {
-			     x: {},
-			     y: {},
-			     value: {}
-			 },
-			 boderWidth: 0,
-			 dataLabels: {
-			     enabled: false
-			 }
-		     }
-		 },
-		 series: [
-		     {
-			 data: dax[file],
-			 type: "heatmap",
-			 showInLegend: false
-		     }
-		 ],
-		 xAxis: {
-		     min: 0,
-		     max: 256,
-		     title: {
-			 text: null
-		     },
-		     labels: {
-			 enabled: false
-		     },
-		     lineWidth: 0,
-		     minorGridLineWidth: 0,
-		     lineColor: 'transparent',
-		     minorTickLength: 0,
-		     tickLength: 0
-		 },
-		 yAxis: {
-		     min: 0,
-		     max: 256,
-		     title: {
-			 text: null
-		     },
-		     labels: {
-			 enabled: false
-		     }
-		 },
-		 tooltip: {
-		     pointFormat: '{point.x}:{point.y}<br>{point.raw}<br>{point.value}<br>{point.color}'
-		 },
-	     })
-	 }
+	     // set up canvas
+	     var imageCanvas = document.getElementById('glCanvas');
+	     imageCanvas.setAttribute("width", numCol);
+	     imageCanvas.setAttribute("height", numRow);
+	     var ctx = imageCanvas.getContext('2d');
+	     var imageData = ctx.getImageData(0, 0, imageCanvas.width, imageCanvas.height); 
+	     
+	     // convert to rgb
+	     for(var i = 0; i < numPixels; i++) {
+		 imageData.data[4*i] = (pixelData[i]*255)/4095; // red
+		 imageData.data[4*i+1] = (pixelData[i]*255)/4095; // green
+		 imageData.data[4*i+2] = (pixelData[i]*255)/4095; // blue
+		 imageData.data[4*i+3] = 255; // alpha
+	     }
+
+	     ctx.putImageData(imageData, 0, 0);	     
+	 } 	     
+
 	</script>
 
 
@@ -238,11 +165,10 @@
 	<br>
 	<br>
 
-	
-	<input type='button' id='btnDraw' value='Draw' onclick='draw(document.querySelectorAll("input:checked")[0].value)'>
+	<input type='button' id='btnDraw' value='Draw' onclick='drawCanvas(document.querySelectorAll("input:checked")[0].value)'>
 	<br>
-	<div id="container" style="height: 1000px; width: 1000px; margin: 0 auto"></div>
 
+	<canvas id="glCanvas" width="640" height="480"></canvas>
 
     </body>
 </html>
