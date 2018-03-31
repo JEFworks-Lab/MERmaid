@@ -105,7 +105,7 @@
 	     // Record
 	     record('loadedDaxFiles', filename); 
 	 }
-
+	 
 	 // Helper functions
 	 function melt(mat) {
 	     // Convert matrix to melted reshaped format for plotting
@@ -139,11 +139,22 @@
 	 }
 	 // Record
 	 function record(id, filename) {
-	     document.getElementById(id).insertAdjacentHTML('beforeend', '<br><input type="checkbox" id=' + filename + ' value=' + filename + '><label for=' + filename + '>' + filename + '</label>');
+	     document.getElementById(id).insertAdjacentHTML('beforeend', '<div><input type="checkbox" id=' + filename + ' value=' + filename + '><label for=' + filename + '>' + filename + ' </label><a href="#" class="delete_upload">(remove)</a></div>');
 	 }
+	 $(document).ready(function() {
+	     $('body').on('click', '.delete_upload', function() {
+		 console.log('removing');
+		 $(this).closest('div').remove();
+		 
+		 // need to actually remove content, not just checkbox
+		 return false;
+	     });
+	 });
 
 	 // Draw
 	 function draw(file) {
+	     console.log('Drawing: ' + file);
+	     
 	     $('#container').highcharts({
 		 chart: {
 		     zoomType: 'xy'
