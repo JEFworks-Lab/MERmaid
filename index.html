@@ -55,10 +55,10 @@
         file = input.files[0];
         console.log(file);
 
-        fr = new FileReader();
-        fr.onload = processDax;
-        fr.readAsBinaryString(file);
-
+	fr = new FileReader();
+	fr.onload = processDax, 
+	fr.readAsArrayBuffer(file);
+	
         function processDax() {
             parseDax(fr);
         }
@@ -67,22 +67,20 @@
     function parseDax(fr) {
         var markup, result, n, aByte, byteStr, data;
 
-        result = fr.result;
-        foo = result;
-
-        // read binary
-        markup = [];
-        for (n = 0; n < result.length; n=n+2) {
-            // read 2 bytes
-            aByte = String(result.charCodeAt(n))+String(result.charCodeAt(n+1));
-            byteStr = parseInt(aByte);
-            markup.push(aByte);
-        }
-
+	// complicated way to read big endian binary data
+	var data = new DataView(fr.result)
+	var tempArray = new Uint16Array(data.byteLength / Uint16Array.BYTES_PER_ELEMENT);
+	var len = tempArray.length;
+	for (var jj = 0; jj < len; ++jj) {
+	    tempArray[jj] = data.getUint16(jj * Uint16Array.BYTES_PER_ELEMENT, false); // set to big endian (true is little endian)
+	}
+	result = Array.from(tempArray);
+	foo = result;
+	
         var dim = inf['frame dimensions'].split('x');
         var numRow = parseInt(dim[0])
         var numCol = parseInt(dim[1])
-        var data = math.reshape(markup, [numRow, numCol]);
+        var data = math.reshape(result, [numRow, numCol]);
 
         // set global
         dax = melt(data);
