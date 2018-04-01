@@ -9,6 +9,7 @@
 
 	<script type='text/javascript'>
 	 var little_endianness = true;
+	 var max_intensity = 4095;
 	 
 	 // Globals
 	 var inf = {};
@@ -53,6 +54,9 @@
              }
 	 }
 	 function loadDaxFile(file, filename) {
+	     little_endianness = document.getElementById('little_endianness').checked
+	     max_intesnity = parseInt(document.getElementById('max_intensity').value)	     
+
 	     var fr = new FileReader();
 	     fr.onload = processDax
 	     fr.readAsArrayBuffer(file);
@@ -99,7 +103,7 @@
 
 	 // Record
 	 function record(id, filename) {
-	     document.getElementById(id).insertAdjacentHTML('beforeend', '<div><form class="form-inline"><input class="form-check-input" type="checkbox" id=' + filename + ' value=' + filename + '><label class="form-check-label" for=' + filename + '><span class="btn">' + filename + '</span></label><a href="#" class="delete_upload"><button class="btn btn-danger">remove</button></a></form></div>');
+	     document.getElementById(id).insertAdjacentHTML('beforeend', '<div><form class="form-inline"><input class="form-check-input draw_upload" type="checkbox" id=' + filename + ' value=' + filename + '><label class="form-check-label" for=' + filename + '><span class="btn">' + filename + '</span></label><a href="#" class="delete_upload"><button class="btn btn-danger">remove</button></a></form></div>');
 	 }
 	 $(document).ready(function() {
 	     $('body').on('click', '.delete_upload', function() {
@@ -113,6 +117,7 @@
 
 	 // Draw
 	 function drawCanvas(filename) {
+	     
 	     var dim = inf[filename]['frame dimensions'].split('x')
 	     var numCol = parseInt(dim[0])
 	     var numRow = parseInt(dim[1])
@@ -128,9 +133,9 @@
 	     
 	     // convert to rgb
 	     for(var i = 0; i < numPixels; i++) {
-		 imageData.data[4*i] = (pixelData[i]*255)/4095; // red
-		 imageData.data[4*i+1] = (pixelData[i]*255)/4095; // green
-		 imageData.data[4*i+2] = (pixelData[i]*255)/4095; // blue
+		 imageData.data[4*i] = (pixelData[i]*255)/max_intensity; // red
+		 imageData.data[4*i+1] = (pixelData[i]*255)/max_intensity; // green
+		 imageData.data[4*i+2] = (pixelData[i]*255)/max_intensity; // blue
 		 imageData.data[4*i+3] = 255; // alpha
 	     }
 
@@ -148,8 +153,7 @@
 
 	<br>
 	
-	<div class="container-fluid">
-	    
+	<div class="container-fluid">	    
 	    <div class="row">
 		<div class="col">   
 		    <form>
@@ -157,6 +161,18 @@
 			<br>
 			<input class="btn btn-block btn-secondary" type='button' id='btnLoad' value='Load' onclick='loadMultipleFiles("fileinput")'>
 		    </form>
+
+		    <hr>
+		    
+		    <form class="form-inline">
+			<input type="checkbox" class="form-check-input" id="little_endianness">
+			<label class="form-check-label" for="little_endianess">Little Endian? Check if true. Unclear how to set automatically...</label>
+		    </form>
+		    <form class="form-inline">
+			<label for="max_intensity">Max Intensity (number). Unclear how to set automatically...</label>
+			<input class="form-control" id="max_intensity" value=4095>
+		    </form>
+		    
 		</div>
 	    </div>
 	    <hr>
@@ -193,7 +209,7 @@
 	    <br>
 	    <div class="row">
 		<div class="col">   
-		    <input class="btn btn-secondary btn-block" type='button' id='btnDraw' value='Draw' onclick='drawCanvas(document.querySelectorAll("input:checked")[0].value)'>
+		    <input class="btn btn-secondary btn-block" type='button' id='btnDraw' value='Draw' onclick='drawCanvas(document.querySelectorAll(".draw_upload")[0].value)'>
 		</div>
 	    </div>
 	</div>
