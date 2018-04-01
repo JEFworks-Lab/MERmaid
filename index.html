@@ -2,16 +2,10 @@
 <html>
     <head>
 
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+	
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-	<script src="js/math.js" type="text/javascript"></script>
 	<script src="js/rainbowvis.js" type="text/javascript"></script>
-
-	<script src="https://code.highcharts.com/highcharts.js"></script>
-	<script src="https://code.highcharts.com/modules/heatmap.js"></script>
-	<script src="https://code.highcharts.com/modules/exporting.js"></script>
-	<script src="https://code.highcharts.com/modules/data.js"></script>
-	<script src="https://code.highcharts.com/modules/boost-canvas.js"></script>
-	<script src="https://code.highcharts.com/modules/boost.js"></script>
 
 	<script type='text/javascript'>
 	 var little_endianness = true;
@@ -105,7 +99,7 @@
 
 	 // Record
 	 function record(id, filename) {
-	     document.getElementById(id).insertAdjacentHTML('beforeend', '<div><input type="checkbox" id=' + filename + ' value=' + filename + '><label for=' + filename + '>' + filename + ' </label><a href="#" class="delete_upload">(remove)</a></div>');
+	     document.getElementById(id).insertAdjacentHTML('beforeend', '<div><form class="form-inline"><input class="form-check-input" type="checkbox" id=' + filename + ' value=' + filename + '><label class="form-check-label" for=' + filename + '><span class="btn">' + filename + '</span></label><a href="#" class="delete_upload"><button class="btn btn-danger">remove</button></a></form></div>');
 	 }
 	 $(document).ready(function() {
 	     $('body').on('click', '.delete_upload', function() {
@@ -126,7 +120,7 @@
 	     var pixelData = dax[filename]
 	     
 	     // set up canvas
-	     var imageCanvas = document.getElementById('glCanvas');
+	     var imageCanvas = document.getElementById('canvas');
 	     imageCanvas.setAttribute("width", numCol);
 	     imageCanvas.setAttribute("height", numRow);
 	     var ctx = imageCanvas.getContext('2d');
@@ -140,7 +134,7 @@
 		 imageData.data[4*i+3] = 255; // alpha
 	     }
 
-	     ctx.putImageData(imageData, 0, 0);	     
+	     ctx.putImageData(imageData, 0, 0);
 	 } 	     
 
 	</script>
@@ -148,27 +142,65 @@
 
     </head>
     <body>
+	<nav class="navbar navbar-dark bg-dark">
+	    <a class="navbar-brand" href="#">MERmaid - a MERFISH data viewer</a>
+	</nav>
 
-	<form action='#' onsubmit="return false;">
-	    <input type='file' id='fileinput' multiple>
-	    <input type='button' id='btnLoad' value='Load' onclick='loadMultipleFiles("fileinput")'>
-	</form>
+	<br>
 	
-	<br>
-	<br>
-
-	<div id="loadedInfFiles">Inf Files:
+	<div class="container-fluid">
+	    
+	    <div class="row">
+		<div class="col">   
+		    <form>
+			<input class="form-control" type='file' id='fileinput' multiple>
+			<br>
+			<input class="btn btn-block btn-secondary" type='button' id='btnLoad' value='Load' onclick='loadMultipleFiles("fileinput")'>
+		    </form>
+		</div>
+	    </div>
+	    <hr>
+	    <div class="row">
+		<div class="col">
+		    <div class="card">
+			<div class="card-header">Inf Files</div>
+			<div class="card-body" id="loadedInfFiles">
+			</div>
+		    </div>
+		</div>
+		<div class="col">
+		    <div class="card">
+			<div class="card-header">Dax Files</div>
+			<div class="card-body" id="loadedDaxFiles">
+			</div>
+		    </div>
+		</div>
+		<div class="col">
+		    <div class="card">
+			<div class="card-header">Tif Files</div>
+			<div class="card-body" id="loadedTifFiles">
+			</div>
+		    </div>
+		</div>
+		<div class="col">
+		    <div class="card">
+			<div class="card-header">Bin Files</div>
+			<div class="card-body" id="loadedBinFiles">
+			</div>
+		    </div>
+		</div>
+	    </div>
+	    <br>
+	    <div class="row">
+		<div class="col">   
+		    <input class="btn btn-secondary btn-block" type='button' id='btnDraw' value='Draw' onclick='drawCanvas(document.querySelectorAll("input:checked")[0].value)'>
+		</div>
+	    </div>
 	</div>
-	<div id="loadedDaxFiles">Dax Files:
+	<div class="row">
+	    <div class="col">
+		<canvas id="canvas"></canvas>
+	    </div>
 	</div>
-	
-	<br>
-	<br>
-
-	<input type='button' id='btnDraw' value='Draw' onclick='drawCanvas(document.querySelectorAll("input:checked")[0].value)'>
-	<br>
-
-	<canvas id="glCanvas" width="640" height="480"></canvas>
-
     </body>
 </html>
