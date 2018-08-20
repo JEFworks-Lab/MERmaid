@@ -1,7 +1,7 @@
 <html>
     <head>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"> </script>
-    <script type="text/javascript" src="//stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js"></script>
+	<script type="text/javascript" src="//stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js"></script>
 
 	<!-- Bootstrap -->
 	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
@@ -19,14 +19,14 @@
 			</div>
 
 			<div id='viewport' class="form-group">
-				<label for="scale">Scale</label>
-				<input type="range" min="1" max="10" value="1" class="slider" id="scale" onchange="zoom()">
+			    <label for="scale">Scale</label>
+			    <input type="range" min="1" max="4" step="0.01" value="1" class="slider" id="scale" onchange="zoom()">
 
-				<label for="xshift">X-Shift</label>
-				<input type="range" min="-1000" max="1000" value="0" class="slider" id="xshift" onchange="zoom()">
+			    <label for="xshift">X-Shift</label>
+			    <input type="range" min="-100" max="100" step="0.01" value="0" class="slider" id="xshift" onchange="zoom()">
 
-				<label for="yshift">Y-Shift</label>
-				<input type="range" min="-1000" max="1000" value="0" class="slider" id="yshift" onchange="zoom()">
+			    <label for="yshift">Y-Shift</label>
+			    <input type="range" min="-100" max="100" step="0.01" value="0" class="slider" id="yshift" onchange="zoom()">
 			</div>
 		    </div>
 		</nav>
@@ -42,15 +42,15 @@
     <script>
      
      $(document).ready(function() {
-		 $.ajax({
-		     type: "GET",
-		     url: "data1.csv",
-		     dataType: "text",
-		     success: function(data) {
-			 	console.log('Loading data ...');
-			 	processData(data);
-		     }
-		 });
+	 $.ajax({
+	     type: "GET",
+	     url: "data1.csv",
+	     dataType: "text",
+	     success: function(data) {
+		 console.log('Loading data ...');
+		 processData(data);
+	     }
+	 });
      });
 
      // globals
@@ -77,8 +77,8 @@
 	 }
 	 
 	 for(var i = 1; i < lines.length-1; i++) {
-	 // test process few lines
-	 //for(var i = 1; i < 1000; i++) {
+	     // test process few lines
+	     //for(var i = 1; i < 1000; i++) {
 	     var res = toObject(lines[i].split(','));
 	     res.x = Number(res.x);
 	     res.y = Number(res.y);
@@ -92,15 +92,15 @@
 	     return value.y;
 	 });
 	 function myMin(foo) {
-    	var r = foo[0];
-    	foo.forEach(function(v,i,a){if (v<r) r=v;});
-    	return r;
-	};
-	function myMax(foo) {
-    	var r = foo[0];
-    	foo.forEach(function(v,i,a){if (v>r) r=v;});
-    	return r;
-	};
+    	     var r = foo[0];
+    	     foo.forEach(function(v,i,a){if (v<r) r=v;});
+    	     return r;
+	 };
+	 function myMax(foo) {
+    	     var r = foo[0];
+    	     foo.forEach(function(v,i,a){if (v>r) r=v;});
+    	     return r;
+	 };
 	 xMin = myMin(x);
 	 xMax = myMax(x);
 	 yMin = myMin(y);
@@ -147,8 +147,12 @@
      // Draw genes
 
      var canvas = document.getElementById("main-canvas");
-     var platform = Stardust.platform("webgl-2d", canvas, canvas.width, canvas.height);
-     let circle = new Stardust.mark.circle(16);
+     var width  = $("main").width();
+     var height = window.innerHeight;
+     canvas.width = width;
+     canvas.height = height;
+     var platform = Stardust.platform("webgl-2d", canvas, width, height);
+     var circle = new Stardust.mark.circle(16);
 
      var scale = 1;
      var xShift = 0;
@@ -156,7 +160,7 @@
 
      var genePoints = [];
      function setGene(gene) {
-     	genePoints = []; //reset
+     	 genePoints = []; //reset
          for(var i = 0; i < points.length; i++) {
              if(points[i].gene == gene) {
                  genePoints.push(points[i])
@@ -167,13 +171,15 @@
      function draw() {
          
          var circles = Stardust.mark.create(circle, platform);
-
+	 var xc = (xMin + xMax)/2; // origin x
+	 var yc = (yMin + yMax)/2; // origin y
+         
          var scaleX = Stardust.scale.linear()
-			      .domain([xMin/scale + xShift, xMax/scale + xShift])
-			      .range([ 0, canvas.width/2 ]);
+			      .domain([(xMin-xc)/scale + xc + xShift, (xMax-xc)/scale + xc + xShift])
+			      .range([ 0, width ]);
          var scaleY = Stardust.scale.linear()
-			      .domain([yMin/scale + yShift, yMax/scale + yShift])
-			      .range([ 0, canvas.height/2 ]);
+			      .domain([(yMin-yc)/scale + yc - yShift, (yMax-yc)/scale + yc - yShift])
+			      .range([ 0, height ]);
          circles.attr("center", Stardust.scale.Vector2(scaleX(d => d.x), scaleY(d => d.y)));
          circles.attr("radius", scale);
          circles.attr("color", [ 1, 1, 1, 0.4 ]);
@@ -192,48 +198,50 @@
      };
 
      function zoom() {
-     	var e = document.getElementById('scale');
-	 	var strSel = e.value;
-	 	console.log(strSel)
-	 	scale = Number(strSel);
+     	 var e = document.getElementById('scale');
+	 var strSel = e.value;
+	 console.log(strSel)
+	 scale = Number(strSel);
 
-     	var e = document.getElementById('xshift');
-	 	var strSel = e.value;
-	 	console.log(strSel)
-	 	xShift = Number(strSel);
+     	 var e = document.getElementById('xshift');
+	 var strSel = e.value;
+	 console.log(strSel)
+	 xShift = Number(strSel);
 
-     	var e = document.getElementById('yshift');
-	 	var strSel = e.value;
-	 	console.log(strSel)
-	 	yShift = Number(strSel);
+     	 var e = document.getElementById('yshift');
+	 var strSel = e.value;
+	 console.log(strSel)
+	 yShift = Number(strSel);
 
-	 	var e = document.getElementById('gene');
-		var strSel = e.options[e.selectedIndex].value;
-		console.log(strSel)
-		setGene(strSel)
+	 var e = document.getElementById('gene');
+	 var strSel = e.options[e.selectedIndex].value;
+	 console.log(strSel)
+	 setGene(strSel)
 
-		draw();	
+	 draw();	
      }
 
      function getSelected(el) {
-		 var e = document.getElementById(el);
-		 var strSel = e.options[e.selectedIndex].value;
-		 console.log(strSel)
-		 setGene(strSel)
-		
-		draw();	 
+	 var e = document.getElementById(el);
+	 var strSel = e.options[e.selectedIndex].value;
+	 console.log(strSel)
+	 setGene(strSel)
+	 
+	 draw();	 
      }
 
 
-    // resize the canvas to fill browser window dynamically
-    window.addEventListener('resize', resizeCanvas, false);
-    function resizeCanvas() {
-            canvas.width = $("main").width();
-            canvas.height = window.innerHeight;
-            platform = Stardust.platform("webgl-2d", canvas, canvas.width, canvas.height);
-            zoom();
-    }
-    resizeCanvas();
+     // resize the canvas to fill browser window dynamically
+     window.addEventListener('resize', resizeCanvas, false);
+     function resizeCanvas() {
+         width = $("main").width();
+         height = window.innerHeight;
+         canvas.width = width;
+     	 canvas.height = height;
+         platform = Stardust.platform("webgl-2d", canvas, width, height);
+         zoom();
+     }
+     resizeCanvas();
      
     </script>
 
