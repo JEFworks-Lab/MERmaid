@@ -32,7 +32,7 @@
 		</nav>
 
 		<main class="col-md-10 m0 p0">
-		    <canvas id="main-canvas" style='border:1px solid black'>
+		    <canvas id="main-canvas" style='border:1px solid black' width=1000 height=1000>
 		    </canvas>
 		</main>
 	    </div>
@@ -76,7 +76,7 @@
 	     return rv;
 	 }
 	 
-	 for(var i = 1; i < lines.length; i++) {
+	 for(var i = 1; i < lines.length-1; i++) {
 	 // test process few lines
 	 //for(var i = 1; i < 1000; i++) {
 	     var res = toObject(lines[i].split(','));
@@ -120,7 +120,7 @@
 	 $.each(features, function(i, f) {
 	     var a = [];
 	     // Use subset to make faster
-	     $.each(points.slice(1,10000), function(j, x) {
+	     $.each(points, function(j, x) {
 		 a.push(x[f])
 	     });
 	     var unique = a.filter(function(item, k, ar){ return ar.indexOf(item) === k; });
@@ -170,10 +170,10 @@
 
          var scaleX = Stardust.scale.linear()
 			      .domain([xMin/scale + xShift, xMax/scale + xShift])
-			      .range([ 10, canvas.width - 10 ]);
+			      .range([ 0, canvas.width/2 ]);
          var scaleY = Stardust.scale.linear()
 			      .domain([yMin/scale + yShift, yMax/scale + yShift])
-			      .range([ 10, canvas.height - 10 ]);
+			      .range([ 0, canvas.height/2 ]);
          circles.attr("center", Stardust.scale.Vector2(scaleX(d => d.x), scaleY(d => d.y)));
          circles.attr("radius", scale);
          circles.attr("color", [ 1, 1, 1, 0.4 ]);
