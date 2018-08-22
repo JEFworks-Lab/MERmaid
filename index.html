@@ -2,50 +2,199 @@
     <head>
 	<script type="text/javascript" src="//unpkg.com/deck.gl@~5.2.0/deckgl.min.js"></script>
 	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+
+	<script src="https://unpkg.com/react@15/dist/react.min.js"> </script>
+	<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
+	<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+    </head>
+
+    <style>
+     body {
+	 width: 100vw;
+	 height: 100vh;
+	 margin: 0;
+	 background: #111;
+     }
+
+     #control-panel {
+	 /*border: 1px solid black;*/
+	 font-family: Helvetica, Arial, sans-serif;
+	 position: absolute;
+	 background-color: rgba(255, 255, 255, 0.9);
+	 top: 0;
+	 left: 0;
+	 margin: 20px;
+	 padding: 15px 20px;;
+	 z-index: 1;
+	 border-radius: 20px;
+     }
+
+     label {
+	 display: inline-block;
+	 width: 140px;
+     }
+
+     #tooltip:empty {
+	 display: none;
+     }
+     #tooltip {
+	 font-family: Helvetica, Arial, sans-serif;
+	 font-size: 11px;
+	 position: absolute;
+	 padding: 4px;
+	 margin: 8px;
+	 background: rgba(0, 0, 0, 0.8);
+	 color: #fff;
+	 max-width: 300px;
+	 font-size: 10px;
+	 z-index: 9;
+	 pointer-events: none;
+     }
+     
+    </style>
+    
     </head>
 
     <body>
-	<div id="container" style="width: 100vw; height: 100vh;"></div>
+	<div id="tooltip"></div>
+	
+	<div id="control-panel">
+	    <div>
+		<label>Size</label>
+		<input id="radiusScale" type="range" min="0.1" max="2" step="0.1" value="0.5"></input>
+		<span id="radiusScale-value"></span>
+	    </div>
+	    <div>
+		<label>Highlight</label>
+		<input id="highlight" type="range" min="1" max="10" step="1" value="2"></input>
+		<span id="highlight-value"></span>
+	    </div>
+	    <div>
+		<label>Gene</label>
+		<select id="gene">
+		    <option value="BRCA2">BRCA2</option>
+		    <option value="VIM">VIM</option>
+		</select>
+	    </div>
+	</div>
+
+	<!--
+	<div id="root">
+	</div>
+	-->
+
     </body>
+    
+    <!-- <script type="text/babel">
+	 var gene = '';
+	 var options = [];
+	 
+	 const OPTION_URL = 'genes.csv';
+	 d3.csv(OPTION_URL,
+	 (error, response) => {
+	 options = response.map(d => d.gene);
+	 renderTable(options);
+	 });
+
+	 function renderTable(options) {
+	 class Table extends React.Component {	 
+	 render() {
+	 return (
+	 <select>
+	 {options.map((i) => {
+	 return (<option value={i}>{i}</option>)
+	 })}
+	 </select>
+	 )
+	 }
+	 };
+	 ReactDOM.render(
+	 <Table />,
+	 document.getElementById("root")
+	 );
+	 }
+	 </script> -->
+
     <script type="text/javascript">
+     
+     const deckgl = new deck.DeckGL({
+	 views: [new deck.OrbitView({
+	     controller: {dragRotate: false}
+	 })],
+	 viewState: {fov: 50, distance: 10, rotationX: 0, rotationOrbit: 0, zoom: 1},
+     });
+    
+     const OPTIONS = ['radiusScale', 'highlight'];     
+     OPTIONS.forEach(key => {
+	document.getElementById(key).oninput = renderLayer;
+     });
+     var selectedGene = '';
+     document.getElementById('gene').onchange = renderLayer;    
+
+     function renderLayer () {
+	 var options = {};	 
+	 OPTIONS.forEach(key => {
+	     const value = document.getElementById(key).value;
+	     document.getElementById(key + '-value').innerHTML = value;
+	     options[key] = value;
+	 });
+	 var e = document.getElementById('gene');
+	 selectedGene = e.options[e.selectedIndex].value;
+
+	 var scatterplotLayer = new
+	 deck.ScatterplotLayer({
+	     id: 'MERmaid',
+	     data: data,
+	     coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
+	     getPosition: d => [d[0], d[1], 0],
+	     getNormal: d => [0, 1, 0],
+	     getColor: d => (d[2]===selectedGene ? [255, 0, 0, 255] : [255, 255, 255, 100]),
+	     getRadius: d => (d[2]===selectedGene ? Number(options.highlight) : 1),
+	     radiusMinPixels: 0.1,
+	     radiusMaxPixels: 10,
+
+	     lightSettings: {
+		 coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
+		 lightsPosition: [20, 100, 100, 50, 0, 0],
+		 lightsStrength: [1, 0, 2, 0],
+		 numberOfLights: 2,
+		 ambientRatio: 0.2
+	     },
+	     
+	     pickable: true,
+	     onHover: updateTooltip,
+	     
+	     ...options
+	 })
+
+	 deckgl.setProps({
+	     layers: [scatterplotLayer]
+	 });
+
+     }     
+
+     function updateTooltip({x, y, object}) {
+	 const tooltip = document.getElementById('tooltip');
+
+	 if (object) {
+	     tooltip.style.top = `${y}px`;
+	     tooltip.style.left = `${x}px`;
+	     tooltip.innerHTML = `
+		 <div><div>${object[2]}</div></div>
+		 `;
+	 } else {
+	     tooltip.innerHTML = '';
+	 }
+     }
+
+     // Data
      const DATA_URL = 'data_all.csv';
      d3.csv(DATA_URL,
 	    (error, response) => {
 		data = response.map(d => [Number(d.x), Number(d.y), d.gene]);
 		renderLayer();
 	    });
-     
-     
-     function renderLayer () {
-	 new deck.DeckGL({
-	     views: [new deck.OrbitView({
-		 controller: {dragRotate: false}
-	     })],
-	     viewState: {fov: 50, distance: 10, rotationX: 0, rotationOrbit: 0, zoom: 1},
-	     layers: [
-		 new deck.ScatterplotLayer({
-		     id: 'MERFISH',
-		     data: data,
-		     coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
-		     getPosition: d => [d[0], d[1], 0],
-		     getNormal: d => [0, 1, 0],
-		     getColor: d => (d[2]==='BRCA2' ? [255, 0, 0, 255] : [0, 0, 0, 100]),
-		     getRadius: d => (d[2]==='BRCA2' ? 2 : 1),
-		     radiusScale: 0.5,
-		     radiusMinPixels: 0.1,
-		     radiusMaxPixels: 10,
-		     opacity: 1,
-		     lightSettings: {
-			 coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
-			 lightsPosition: [20, 100, 100, 50, 0, 0],
-			 lightsStrength: [1, 0, 2, 0],
-			 numberOfLights: 2,
-			 ambientRatio: 0.2
-		     }
-		 })
-	     ]
-	 });
-     }     
-    </script>
 
+    </script>
+    
 </html>
