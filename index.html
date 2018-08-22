@@ -1,260 +1,200 @@
 <html>
     <head>
-	<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"> </script>
-	<script type="text/javascript" src="//stardustjs.github.io/stardust/v0.1.1/stardust.bundle.min.js"></script>
+	<script type="text/javascript" src="//unpkg.com/deck.gl@~5.2.0/deckgl.min.js"></script>
+	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
 
-	<!-- Bootstrap -->
-	<link rel="stylesheet" href="//stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
-	<script src="//cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
-	<script src="//stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>	 
-	
+	<script src="https://unpkg.com/react@15/dist/react.min.js"> </script>
+	<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
+	<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+    </head>
+
+    <style>
+     body {
+	 width: 100vw;
+	 height: 100vh;
+	 margin: 0;
+	 background: #111;
+     }
+
+     #control-panel {
+	 /*border: 1px solid black;*/
+	 font-family: Helvetica, Arial, sans-serif;
+	 position: absolute;
+	 background-color: rgba(255, 255, 255, 0.9);
+	 top: 0;
+	 left: 0;
+	 margin: 20px;
+	 padding: 15px 20px;;
+	 z-index: 1;
+	 border-radius: 20px;
+     }
+
+     label {
+	 display: inline-block;
+	 width: 140px;
+     }
+
+     #tooltip:empty {
+	 display: none;
+     }
+     #tooltip {
+	 font-family: Helvetica, Arial, sans-serif;
+	 font-size: 11px;
+	 position: absolute;
+	 padding: 4px;
+	 margin: 8px;
+	 background: rgba(0, 0, 0, 0.8);
+	 color: #fff;
+	 max-width: 300px;
+	 font-size: 10px;
+	 z-index: 9;
+	 pointer-events: none;
+     }
+     
+    </style>
+    
     </head>
 
     <body>
-	<nav class="navbar navbar-dark bg-dark">
-	    <div class="pull-left">
-		<a class="navbar-brand" href="#">MERmaid - a MERFISH data viewer</a>
+	<div id="tooltip"></div>
+	
+	<div id="control-panel">
+	    <div>
+		<label>Size</label>
+		<input id="radiusScale" type="range" min="0.1" max="2" step="0.1" value="0.5"></input>
+		<span id="radiusScale-value"></span>
 	    </div>
-	    <div class="pull-right">
-		<a href="http://github.com/JEFworks/MERmaid">Source Code</a>
+	    <div>
+		<label>Highlight</label>
+		<input id="highlight" type="range" min="1" max="10" step="1" value="2"></input>
+		<span id="highlight-value"></span>
 	    </div>
-	</nav>
-		
-	<div class="container-fluid">
-	    <div class="row">
-		<nav id="sidebar" class="col-md-3 sidebar bg-light">
-		    <div class="sidebar-sticky p-2"> 
-			<div id='data'>
-			    <br>
-			    <h3>Viewer Parameters</h3>
-			    <br>
-			</div>
-
-			<div id='viewport' class="form-group">
-			    <label for="scale">Scale</label>
-			    <input type="range" min="1" max="4" step="0.01" value="1" class="slider form-control" id="scale" onchange="zoom()">
-			    <br>
-			    <label for="xshift">X-Shift</label>
-			    <input type="range" min="-100" max="100" step="0.01" value="0" class="slider form-control" id="xshift" onchange="zoom()">
-			    <br>
-			    <label for="yshift">Y-Shift</label>
-			    <input type="range" min="-100" max="100" step="0.01" value="0" class="slider form-control" id="yshift" onchange="zoom()">
-			</div>
-		    </div>
-		</nav>
-
-		<main class="col-md-9" style="padding:0px; margin:0px;">
-		    <canvas id="main-canvas">
-		    </canvas>
-		</main>
+	    <div>
+		<label>Gene</label>
+		<select id="gene">
+		    <option value="BRCA2">BRCA2</option>
+		    <option value="VIM">VIM</option>
+		</select>
 	    </div>
 	</div>
+
+	<!--
+	<div id="root">
+	</div>
+	-->
+
     </body>
-
-    <script>
-     
-     $(document).ready(function() {
-	 $.ajax({
-	     type: "GET",
-	     url: "data1.csv",
-	     dataType: "text",
-	     success: function(data) {
-		 console.log('Loading data ...');
-		 processData(data);
-	     }
+    
+    <!-- <script type="text/babel">
+	 var gene = '';
+	 var options = [];
+	 
+	 const OPTION_URL = 'genes.csv';
+	 d3.csv(OPTION_URL,
+	 (error, response) => {
+	 options = response.map(d => d.gene);
+	 renderTable(options);
 	 });
+
+	 function renderTable(options) {
+	 class Table extends React.Component {	 
+	 render() {
+	 return (
+	 <select>
+	 {options.map((i) => {
+	 return (<option value={i}>{i}</option>)
+	 })}
+	 </select>
+	 )
+	 }
+	 };
+	 ReactDOM.render(
+	 <Table />,
+	 document.getElementById("root")
+	 );
+	 }
+	 </script> -->
+
+    <script type="text/javascript">
+     
+     const deckgl = new deck.DeckGL({
+	 views: [new deck.OrbitView({
+	     controller: {dragRotate: false}
+	 })],
+	 viewState: {fov: 50, distance: 10, rotationX: 0, rotationOrbit: 0, zoom: 1},
      });
+    
+     const OPTIONS = ['radiusScale', 'highlight'];     
+     OPTIONS.forEach(key => {
+	document.getElementById(key).oninput = renderLayer;
+     });
+     var selectedGene = '';
+     document.getElementById('gene').onchange = renderLayer;    
 
-     // globals
-     var points = []; 
-     var features = []; // names of features that are not x, y, z position
-     var featureOptions = []; // feature options
-     
-     var xMin;
-     var xMax;
-     var yMin;
-     var yMax;
-     
-     function processData(text) {
-	 console.log('Processing data ...');
-	 
-	 var lines = text.split('\n');
-	 var colnames = lines[0].split(',');
-	 
-	 function toObject(arr) {
-	     var rv = {};
-	     for (var i = 0; i < arr.length; ++i)
-		 rv[colnames[i]] = arr[i];
-	     return rv;
-	 }
-	 
-	 for(var i = 1; i < lines.length-1; i++) {
-	     // test process few lines
-	     //for(var i = 1; i < 1000; i++) {
-	     var res = toObject(lines[i].split(','));
-	     res.x = Number(res.x);
-	     res.y = Number(res.y);
-	     points.push(res);
-	 }
-
-	 var x = points.map(function(value) {
-	     return value.x;
+     function renderLayer () {
+	 var options = {};	 
+	 OPTIONS.forEach(key => {
+	     const value = document.getElementById(key).value;
+	     document.getElementById(key + '-value').innerHTML = value;
+	     options[key] = value;
 	 });
-	 var y = points.map(function(value) {
-	     return value.y;
-	 });
-	 function myMin(foo) {
-    	     var r = foo[0];
-    	     foo.forEach(function(v,i,a){if (v<r) r=v;});
-    	     return r;
-	 };
-	 function myMax(foo) {
-    	     var r = foo[0];
-    	     foo.forEach(function(v,i,a){if (v>r) r=v;});
-    	     return r;
-	 };
-	 xMin = myMin(x);
-	 xMax = myMax(x);
-	 yMin = myMin(y);
-	 yMax = myMax(y);
-
-	 getFeatures();
-	 drawTable()
-	 draw();
-     }
-
-     // After data has been processed, can draw features
-     function getFeatures() {
-	 console.log('Getting data features ...');
-	 
-	 var colnames = Object.keys(points[1]);
-	 features = colnames.filter(x => !['x', 'y', 'z'].includes(x));
-	 $.each(features, function(i, f) {
-	     var a = [];
-	     // Use subset to make faster
-	     $.each(points, function(j, x) {
-		 a.push(x[f])
-	     });
-	     var unique = a.filter(function(item, k, ar){ return ar.indexOf(item) === k; });
-	     featureOptions[f] = unique.sort();
-	 })
-     };
-     function drawTable() {
-	 console.log('Drawing tables ...');
-	 
-	 var tblRow = ""
-	 $.each(features, function(i, f) {
-	     tblRow = tblRow + "<div class=\"form-group\"><label for=\""+f+"\">"+f+"</label><select class=\"form-control\" id=\"" + f + "\" onchange=\"getSelected(\'"+f+"\')\">"
-
-	     $.each(featureOptions[f], function(j, x) {
-		 tblRow = tblRow + "<option value='" + x + "'>" + x + "</option>"
-	     });
-
-	     tblRow = tblRow + "</select>"
-	 });
-	 $(tblRow).appendTo("#data");
-     };
-     
-     
-     // Draw genes
-
-     var canvas = document.getElementById("main-canvas");
-     var width  = $("main").width();
-     var height = window.innerHeight;
-     canvas.width = width;
-     canvas.height = height;
-     var platform = Stardust.platform("webgl-2d", canvas, width, height);
-     var circle = new Stardust.mark.circle(16);
-
-     var scale = 1;
-     var xShift = 0;
-     var yShift = 0;
-
-     var genePoints = [];
-     function setGene(gene) {
-     	 genePoints = []; //reset
-         for(var i = 0; i < points.length; i++) {
-             if(points[i].gene == gene) {
-                 genePoints.push(points[i])
-             }
-         }
-     }
-
-     function draw() {
-         
-         var circles = Stardust.mark.create(circle, platform);
-	 var xc = (xMin + xMax)/2; // origin x
-	 var yc = (yMin + yMax)/2; // origin y
-         
-         var scaleX = Stardust.scale.linear()
-			      .domain([(xMin-xc)/scale + xc + xShift, (xMax-xc)/scale + xc + xShift])
-			      .range([ 0, width ]);
-         var scaleY = Stardust.scale.linear()
-			      .domain([(yMin-yc)/scale + yc - yShift, (yMax-yc)/scale + yc - yShift])
-			      .range([ 0, height ]);
-         circles.attr("center", Stardust.scale.Vector2(scaleX(d => d.x), scaleY(d => d.y)));
-         circles.attr("radius", scale);
-         circles.attr("color", [ 1, 1, 1, 0.4 ]);
-         circles.data(points);
-         
-         var circles2 = Stardust.mark.create(circle, platform);
-         circles2.attr("center", Stardust.scale.Vector2(scaleX(d => d.x), scaleY(d => d.y)));
-         circles2.attr("radius", scale*3);
-         circles2.attr("color", [ 1, 0, 0, 1 ]);
-         circles2.data(genePoints);
-
-         platform.clear([ 0, 0, 0, 1 ]);
-         circles.render();
-         circles2.render();
-
-     };
-
-     function zoom() {
-     	 var e = document.getElementById('scale');
-	 var strSel = e.value;
-	 console.log(strSel)
-	 scale = Number(strSel);
-
-     	 var e = document.getElementById('xshift');
-	 var strSel = e.value;
-	 console.log(strSel)
-	 xShift = Number(strSel);
-
-     	 var e = document.getElementById('yshift');
-	 var strSel = e.value;
-	 console.log(strSel)
-	 yShift = Number(strSel);
-
 	 var e = document.getElementById('gene');
-	 var strSel = e.options[e.selectedIndex].value;
-	 console.log(strSel)
-	 setGene(strSel)
+	 selectedGene = e.options[e.selectedIndex].value;
 
-	 draw();	
+	 var scatterplotLayer = new
+	 deck.ScatterplotLayer({
+	     id: 'MERmaid',
+	     data: data,
+	     coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
+	     getPosition: d => [d[0], d[1], 0],
+	     getNormal: d => [0, 1, 0],
+	     getColor: d => (d[2]===selectedGene ? [255, 0, 0, 255] : [255, 255, 255, 100]),
+	     getRadius: d => (d[2]===selectedGene ? Number(options.highlight) : 1),
+	     radiusMinPixels: 0.1,
+	     radiusMaxPixels: 10,
+
+	     lightSettings: {
+		 coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
+		 lightsPosition: [20, 100, 100, 50, 0, 0],
+		 lightsStrength: [1, 0, 2, 0],
+		 numberOfLights: 2,
+		 ambientRatio: 0.2
+	     },
+	     
+	     pickable: true,
+	     onHover: updateTooltip,
+	     
+	     ...options
+	 })
+
+	 deckgl.setProps({
+	     layers: [scatterplotLayer]
+	 });
+
+     }     
+
+     function updateTooltip({x, y, object}) {
+	 const tooltip = document.getElementById('tooltip');
+
+	 if (object) {
+	     tooltip.style.top = `${y}px`;
+	     tooltip.style.left = `${x}px`;
+	     tooltip.innerHTML = `
+		 <div><div>${object[2]}</div></div>
+		 `;
+	 } else {
+	     tooltip.innerHTML = '';
+	 }
      }
 
-     function getSelected(el) {
-	 var e = document.getElementById(el);
-	 var strSel = e.options[e.selectedIndex].value;
-	 console.log(strSel)
-	 setGene(strSel)
-	 
-	 draw();	 
-     }
+     // Data
+     const DATA_URL = 'data_all.csv';
+     d3.csv(DATA_URL,
+	    (error, response) => {
+		data = response.map(d => [Number(d.x), Number(d.y), d.gene]);
+		renderLayer();
+	    });
 
-
-     // resize the canvas to fill browser window dynamically
-     window.addEventListener('resize', resizeCanvas, false);
-     function resizeCanvas() {
-         width = $("main").width();
-         height = window.innerHeight;
-         canvas.width = width;
-     	 canvas.height = height;
-         platform = Stardust.platform("webgl-2d", canvas, width, height);
-         zoom();
-     }
-     resizeCanvas();
-     
     </script>
-
+    
 </html>
