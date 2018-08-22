@@ -1,6 +1,6 @@
 <html>
     <head>
-	<script type="text/javascript" src="//unpkg.com/deck.gl@~5.2.0/deckgl.min.js"></script>
+	<script type="text/javascript" src="//unpkg.com/deck.gl@6.0.0/deckgl.min.js"></script>
 	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
 
 	<script src="https://unpkg.com/react@15/dist/react.min.js"> </script>
@@ -60,87 +60,95 @@
 	
 	<div id="control-panel">
 	    <div>
+		<label>Total Points Rendered</label>
+		<span id='totalPoints'></span>
+	    </div>
+	    <hr>
+	    <div>
 		<label>Size</label>
-		<input id="radiusScale" type="range" min="0.1" max="2" step="0.1" value="0.5"></input>
+		<input id="radiusScale" type="range" min="0.1" max="5" step="0.1" value="0.5"></input>
 		<span id="radiusScale-value"></span>
 	    </div>
 	    <div>
 		<label>Highlight</label>
-		<input id="highlight" type="range" min="1" max="10" step="1" value="2"></input>
+		<input id="highlight" type="range" min="1" max="10" step="1" value="3"></input>
 		<span id="highlight-value"></span>
 	    </div>
 	    <div>
 		<label>Gene</label>
-		<select id="gene">
-		    <option value="BRCA2">BRCA2</option>
-		    <option value="VIM">VIM</option>
-		</select>
+		<span id="root">
+		</span>
+	    </div>
+	    <hr>
+	    <div>
+		<a href="data_all.csv"><button>Download Data</button></a>
+		<a target='_blank' href="https://www.nature.com/articles/s41598-018-22297-7"><button>Data Source (Guiping Wang et al.)</button></a>
 	    </div>
 	</div>
 
-	<!--
-	<div id="root">
-	</div>
-	-->
 
     </body>
     
-    <!-- <script type="text/babel">
-	 var gene = '';
-	 var options = [];
-	 
-	 const OPTION_URL = 'genes.csv';
-	 d3.csv(OPTION_URL,
-	 (error, response) => {
-	 options = response.map(d => d.gene);
-	 renderTable(options);
-	 });
+    <script type="text/babel">
+     // Create gene selection options
+     const OPTION_URL = 'genes.csv';
+     d3.csv(OPTION_URL,
+	    (error, response) => {
+		var genes = response.map(d => d.gene);
+		renderTable(genes);
+		document.getElementById('gene').onchange = renderLayer;    
+	    });
 
-	 function renderTable(options) {
+     function renderTable(genes) {
 	 class Table extends React.Component {	 
-	 render() {
-	 return (
-	 <select>
-	 {options.map((i) => {
-	 return (<option value={i}>{i}</option>)
-	 })}
-	 </select>
-	 )
-	 }
+	     render() {
+		 return (
+		     <select id='gene' onchange='renderLayer()'>
+			 {genes.map((i) => {
+			       return (<option value={i}>{i}</option>)
+			   })}
+		     </select>
+		 )
+	     }
 	 };
 	 ReactDOM.render(
-	 <Table />,
-	 document.getElementById("root")
+	     <Table />,
+	     document.getElementById("root")
 	 );
-	 }
-	 </script> -->
+     }
+    </script>
 
     <script type="text/javascript">
      
      const deckgl = new deck.DeckGL({
 	 views: [new deck.OrbitView({
-	     controller: {dragRotate: false}
+	     controller: {
+		 dragRotate: false,
+		 dragPan: true
+	     }
 	 })],
-	 viewState: {fov: 50, distance: 10, rotationX: 0, rotationOrbit: 0, zoom: 1},
+	 viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1},
      });
     
      const OPTIONS = ['radiusScale', 'highlight'];     
      OPTIONS.forEach(key => {
 	document.getElementById(key).oninput = renderLayer;
      });
-     var selectedGene = '';
-     document.getElementById('gene').onchange = renderLayer;    
+     var selectedGene = '';     
 
      function renderLayer () {
 	 var options = {};	 
 	 OPTIONS.forEach(key => {
 	     const value = document.getElementById(key).value;
 	     document.getElementById(key + '-value').innerHTML = value;
-	     options[key] = value;
+	     options[key] = Number(value);
 	 });
 	 var e = document.getElementById('gene');
 	 selectedGene = e.options[e.selectedIndex].value;
 
+	 console.log(options);
+	 console.log(selectedGene);
+	 
 	 var scatterplotLayer = new
 	 deck.ScatterplotLayer({
 	     id: 'MERmaid',
@@ -163,6 +171,11 @@
 	     
 	     pickable: true,
 	     onHover: updateTooltip,
+
+	     updateTriggers: {
+		 getColor: selectedGene,
+		 getRadius: options.highlight
+	     },
 	     
 	     ...options
 	 })
@@ -193,6 +206,13 @@
 	    (error, response) => {
 		data = response.map(d => [Number(d.x), Number(d.y), d.gene]);
 		renderLayer();
+		document.getElementById('totalPoints').innerHTML = data.length;
+	    }).on("progress", function(event){
+		//update progress bar
+		if (event.lengthComputable) {
+		    var percentComplete = Math.round(event.loaded * 100 / event.total);
+		    console.log(percentComplete);
+		}
 	    });
 
     </script>
