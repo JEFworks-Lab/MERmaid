@@ -201,7 +201,7 @@
      }
 
      // Data
-     const DATA_URL = 'data_all.csv';
+     const DATA_URL = 'data.csv';
      d3.csv(DATA_URL,
 	    (error, response) => {
 		data = response.map(d => [Number(d.x), Number(d.y), d.gene]);
