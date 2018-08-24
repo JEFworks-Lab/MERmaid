@@ -1,4 +1,7 @@
 # MERmaid
+
+![mermaid logo](mermaid_logo.svg)
+
 WebGL-based viewer for MERFISH data
 
 ## Online Demo: 
