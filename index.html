@@ -16,6 +16,16 @@
 	 background: #111;
      }
 
+     #loading {
+	 position: absolute;
+	 width: 100px;
+	 height: 100px;
+	 z-index: 15;
+	 top: 50%;
+	 left: 50%;
+	 margin: -100px 0 0 -100px;	 
+     }
+
      #control-panel {
 	 /*border: 1px solid black;*/
 	 font-family: Helvetica, Arial, sans-serif;
@@ -57,6 +67,8 @@
 
     <body>
 	<div id="tooltip"></div>
+
+	<div id="loading"><img src="loading.gif"></div>
 	
 	<div id="control-panel">
 	    <div>
@@ -68,11 +80,6 @@
 		<label>Size</label>
 		<input id="radiusScale" type="range" min="0.1" max="5" step="0.1" value="0.5"></input>
 		<span id="radiusScale-value"></span>
-	    </div>
-	    <div>
-		<label>Highlight</label>
-		<input id="highlight" type="range" min="1" max="10" step="1" value="3"></input>
-		<span id="highlight-value"></span>
 	    </div>
 	    <div>
 		<label>Gene</label>
@@ -130,7 +137,7 @@
 	 viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1},
      });
     
-     const OPTIONS = ['radiusScale', 'highlight'];     
+     const OPTIONS = ['radiusScale'];     
      OPTIONS.forEach(key => {
 	document.getElementById(key).oninput = renderLayer;
      });
@@ -156,8 +163,8 @@
 	     coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
 	     getPosition: d => [d[0], d[1], 0],
 	     getNormal: d => [0, 1, 0],
-	     getColor: d => (d[2]===selectedGene ? [255, 0, 0, 255] : [255, 255, 255, 100]),
-	     getRadius: d => (d[2]===selectedGene ? Number(options.highlight) : 1),
+	     getColor: d => (d[2]===selectedGene ? [0, 255, 0, 255] : [255, 255, 255, 100]),
+	     getRadius: d => (d[2]===selectedGene ? 4 : 1),
 	     radiusMinPixels: 0.1,
 	     radiusMaxPixels: 10,
 
@@ -174,7 +181,7 @@
 
 	     updateTriggers: {
 		 getColor: selectedGene,
-		 getRadius: options.highlight
+		 getRadius: selectedGene
 	     },
 	     
 	     ...options
@@ -204,9 +211,13 @@
      const DATA_URL = 'data.csv';
      d3.csv(DATA_URL,
 	    (error, response) => {
+		console.log('reading data');
 		data = response.map(d => [Number(d.x), Number(d.y), d.gene]);
+		console.log('rendering layer');
 		renderLayer();
 		document.getElementById('totalPoints').innerHTML = data.length;
+		console.log(data.length);
+		document.getElementById('loading').innerHTML = ''; // remove loading
 	    }).on("progress", function(event){
 		//update progress bar
 		if (event.lengthComputable) {
