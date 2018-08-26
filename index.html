@@ -6,6 +6,7 @@
 	<script src="https://unpkg.com/react@15/dist/react.min.js"> </script>
 	<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
 	<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.6/pako_inflate.min.js"></script>
     </head>
 
     <style>
@@ -92,7 +93,7 @@
 	    </div>
 	    <hr>
 	    <div>
-		<a href="data.csv"><button>Download Data</button></a>
+		<a href="data.csv.gz"><button>Download Data</button></a>
 		<a target='_blank' href="https://www.nature.com/articles/s41598-018-22297-7"><button>Data Source (Guiping Wang et al.)</button></a>
 	    </div>
 	</div>
@@ -130,6 +131,30 @@
     </script>
 
     <script type="text/javascript">
+
+var logTime = function(text) {
+  console.log('[' + new Date().toUTCString() + '] ' + text);
+}
+
+var fetch = function(data_url, callback) {
+  logTime('downloading data');
+  var oReq = new XMLHttpRequest();
+  oReq.open("GET", data_url, true);
+  oReq.responseType = "arraybuffer";
+  oReq.onload = function(oEvent) {
+    var arrayBuffer = oReq.response;
+    if (arrayBuffer) {
+      // Get the compressed data.
+      var byteArray = new Uint8Array(arrayBuffer);
+      // Decompress the data.
+      byteArray = pako.inflate(byteArray)
+      // Convert to string.
+      var s = new TextDecoder("utf-8").decode(byteArray)
+      callback(s)
+    }
+  };
+  oReq.send(null);
+}
 
      const deckgl = new deck.DeckGL({
 	 views: [new deck.OrbitView({
@@ -217,24 +242,31 @@
 	 }
      }
 
-     // Data
-     const DATA_URL = 'data.csv';
-     d3.csv(DATA_URL,
-	    (error, response) => {
-		console.log('reading data');
-		data = response.map(d => [Number(d.x), Number(d.y), d.gene]);
-		console.log('rendering layer');
-		renderLayer();
-		document.getElementById('totalPoints').innerHTML = data.length;
-		console.log(data.length);
-		document.getElementById('loading').innerHTML = ''; // remove loading
-	    }).on("progress", function(event){
-		//update progress bar
-		if (event.lengthComputable) {
-		    var percentComplete = Math.round(event.loaded * 100 / event.total);
-		    console.log(percentComplete);
-		}
-	    });
+  // Data
+  const DATA_URL = 'data.csv.gz';
+  fetch(DATA_URL, function(data_string) {
+    logTime('parsing data');
+    data = d3.csvParseRows(
+      data_string,
+      (d, i) => {
+        if (i > 0) {
+          return [parseFloat(d[0]), parseFloat(d[1]), d[2]];
+        }
+      }
+    )
+    logTime('started rendering layer');
+    renderLayer();
+    logTime('finished rendering layer');
+    document.getElementById('totalPoints').innerHTML = d3.format(",")(data.length);
+    document.getElementById('loading').innerHTML = ''; // remove loading
+  })
+//  .on("progress", function(event){
+//    //update progress bar
+//    if (event.lengthComputable) {
+//      var percentComplete = Math.round(event.loaded * 100 / event.total);
+//      console.log(percentComplete);
+//    }
+//  });
 
     </script>
     
