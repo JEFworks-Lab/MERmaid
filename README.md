@@ -7,6 +7,8 @@ WebGL-based viewer for MERFISH data
 ## Online Demo: 
 [https://jef.works/MERmaid/](https://jef.works/MERmaid/)
 
+![mermaid demo](mermaid_demo.gif)
+
 ## To run locally
 
 ```
@@ -24,6 +26,8 @@ python -m http.server
 # If Python version returned above is 2.X
 python -m SimpleHTTPServer
 ```
+
+Then point your browser to http://localhost:8000/
 
 ## Data format
 
