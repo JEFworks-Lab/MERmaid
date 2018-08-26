@@ -88,6 +88,10 @@
 	    </div>
 	    <hr>
 	    <div>
+		<button id='reset'>Reset View</button>
+	    </div>
+	    <hr>
+	    <div>
 		<a href="data.csv"><button>Download Data</button></a>
 		<a target='_blank' href="https://www.nature.com/articles/s41598-018-22297-7"><button>Data Source (Guiping Wang et al.)</button></a>
 	    </div>
@@ -126,7 +130,7 @@
     </script>
 
     <script type="text/javascript">
-     
+
      const deckgl = new deck.DeckGL({
 	 views: [new deck.OrbitView({
 	     controller: {
@@ -136,13 +140,19 @@
 	 })],
 	 viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1},
      });
-    
+
      const OPTIONS = ['radiusScale'];     
      OPTIONS.forEach(key => {
 	document.getElementById(key).oninput = renderLayer;
      });
-     var selectedGene = '';     
+     
+     d3.select('#reset').on('click', d => {
+	 deckgl.setProps({
+	     viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1}
+	 })
+     });
 
+     var selectedGene = '';     
      function renderLayer () {
 	 var options = {};	 
 	 OPTIONS.forEach(key => {
