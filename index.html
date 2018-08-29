@@ -1,12 +1,17 @@
 <html>
+    <meta charset="UTF-8">
     <head>
-	<script type="text/javascript" src="//unpkg.com/deck.gl@6.0.0/deckgl.min.js"></script>
-	<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/d3/4.13.0/d3.min.js"></script>
+	<!-- WebGL Dependencies -->
+	<script type="text/javascript" src="js/deckgl.min.js"></script>
 
-	<script src="https://unpkg.com/react@15/dist/react.min.js"> </script>
-	<script src="https://unpkg.com/react-dom@15/dist/react-dom.min.js"></script>
-	<script src="https://unpkg.com/babel-standalone@6.15.0/babel.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/1.0.6/pako_inflate.min.js"></script>
+	<!-- GUI Dependencies -->
+	<script type="text/javascript" src="js/react.min.js"> </script>
+	<script type="text/javascript" src="js/react-dom.min.js"></script>
+	<script type="text/javascript" src="js/babel.min.js"></script>
+	
+	<!-- IO Dependencies -->
+	<script type="text/javascript" src="js/d3.min.js"></script>
+	<script type="text/javascript" src="js/pako_inflate.min.js"></script>
     </head>
 
     <style>
@@ -68,56 +73,52 @@
 
     <body>
 	<div id="tooltip"></div>
-
 	<div id="loading"><img src="loading.gif"></div>
 	
 	<div id="control-panel">
-	    <div>
+	    <div id='control-panel-stats'>
 		<label>Total Points Rendered</label>
 		<span id='totalPoints'></span>
 	    </div>
 	    <hr>
-	    <div>
+	    <div id='control-panel-fixed-options'>
 		<label>Size</label>
 		<input id="radiusScale" type="range" min="0.1" max="5" step="0.1" value="0.5"></input>
 		<span id="radiusScale-value"></span>
 	    </div>
-	    <div>
-		<label>Gene</label>
-		<span id="root">
-		</span>
-	    </div>
+	    <span id="control-panel-detected-options">
+	    </span>
 	    <hr>
-	    <div>
+	    <div id='control-panel-buttons'>
 		<button id='reset'>Reset View</button>
-	    </div>
-	    <hr>
-	    <div>
 		<a href="data.csv.gz"><button>Download Data</button></a>
-		<a target='_blank' href="https://www.nature.com/articles/s41598-018-22297-7"><button>Data Source (Guiping Wang et al.)</button></a>
+		<a href="https://github.com/JEFworks/MERmaid"><button>Source Code</button></a>
 	    </div>
 	</div>
 
-
     </body>
     
-    <script type="text/babel">
-     // Create gene selection options
-     function renderTable(genes) {
+    <script type="text/babel">     
+     // Create selection menu for detected options
+     function renderTable(genes, div) {
+	 var divid = div + '_holder';
 	 class Table extends React.Component {	 
 	     render() {
 		 return (
-		     <select id='gene' onchange='renderLayer()'>
-			 {genes.map((i) => {
-			       return (<option value={i}>{i}</option>)
-			   })}
-		     </select>
+		     <div>
+			 <label>{div}</label>
+			 <select id={div}>
+			     {genes.map((i) => {
+				   return (<option value={i}>{i}</option>)
+			       })}
+			 </select>
+		     </div>
 		 )
 	     }
 	 };
 	 ReactDOM.render(
 	     <Table />,
-	     document.getElementById("root")
+	     document.getElementById(divid)
 	 );
      }
     </script>
@@ -137,9 +138,9 @@
 	     var arrayBuffer = oReq.response;
 	     if (arrayBuffer) {
 		 // Get the compressed data.
-		 var byteArray = new Uint8Array(arrayBuffer);
+		     var byteArray = new Uint8Array(arrayBuffer);
 		 // Decompress the data.
-		 byteArray = pako.inflate(byteArray)
+		     byteArray = pako.inflate(byteArray)
 		 // Convert to string.
 		 var s = new TextDecoder("utf-8").decode(byteArray)
 		 callback(s)
@@ -158,7 +159,7 @@
 	 viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1},
      });
 
-     const OPTIONS = ['radiusScale'];     
+     const OPTIONS = ['radiusScale'];   
      OPTIONS.forEach(key => {
 	 document.getElementById(key).oninput = renderLayer;
      });
@@ -170,7 +171,7 @@
 	 })
      });
 
-     var selectedGene = '';     
+     var selectedGene = '';   
      function renderLayer () {
 	 var options = {};	 
 	 OPTIONS.forEach(key => {
@@ -178,8 +179,6 @@
 	     document.getElementById(key + '-value').innerHTML = value;
 	     options[key] = Number(value);
 	 });
-	 var e = document.getElementById('gene');
-	 selectedGene = e.options[e.selectedIndex].value;
 
 	 console.log(options);
 	 console.log(selectedGene);
@@ -189,7 +188,7 @@
 	     id: 'MERmaid',
 	     data: data,
 	     coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
-	     getPosition: d => [d[0], d[1], 0],
+	     getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
 	     getNormal: d => [0, 1, 0],
 	     getColor: d => (d[2]===selectedGene ? [0, 255, 0, 255] : [255, 255, 255, 100]),
 	     getRadius: d => (d[2]===selectedGene ? 4 : 1),
@@ -219,7 +218,7 @@
 	     layers: [scatterplotLayer]
 	 });
 
-     }     
+     }   
 
      function updateTooltip({x, y, object}) {
 	 const tooltip = document.getElementById('tooltip');
@@ -235,22 +234,40 @@
 	 }
      }
 
-     // Data
+     // Read data
      const DATA_URL = 'data.csv.gz';
+     var header = [];
+     var options = [];
      fetch(DATA_URL, function(data_string) {
 	 logTime('parsing data');
 	 data = d3.csvParseRows(
 	     data_string,
 	     (d, i) => {
-		 if (i > 0) {
-		     return [parseFloat(d[0]), parseFloat(d[1]), d[2]];
-		 }
+		 return(d)
 	     }
 	 )
+	 header = data.splice(0,1)[0];
 
-	 var genes = d3.map(data, function(d){return d[2];}).keys();
-	 renderTable(genes);
-	 document.getElementById('gene').onchange = renderLayer;    
+	 options = header.filter(x => ['x', 'y', 'z'].indexOf(x) < 0 );
+	 console.log(options)
+	 var ops = [];
+	 d3.map(options, function(option) {
+	     ops = d3.map(data, function(d){
+		 return d[header.indexOf(option)];
+	     }).keys();
+	     iDiv = document.createElement('div');
+	     iDiv.id = option + '_holder';
+	     document.getElementById('control-panel-detected-options').appendChild(iDiv);	     
+	     renderTable(ops, option);
+	     
+	     document.getElementById(option).onchange = function() {
+		 var e = document.getElementById(option);
+		 selectedGene = e.options[e.selectedIndex].value;
+		 console.log(selectedGene);
+		 renderLayer();
+	     }
+	 });
+	 selectedGene = ops[0];
 	 
 	 logTime('started rendering layer');
 	 renderLayer();
