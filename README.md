@@ -33,6 +33,14 @@ Then point your browser to http://localhost:8000/
 
 []()Filename | []()Description
 |-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `data.csv`  | Each line is a point. First column is x coordinate, second column is y coordinate. Remaining columns are categorical metadata/annotations such as genes. |
-| `genes.csv` | Each column is the set of options available for each metadata/annotation ie. all the genes assayed.                                                      |
+| `data.csv.gz`  | Each line is a point. Column are x, y, and z coordinates if appropriate. Remaining columns are categorical metadata/annotations such as genes. Columns must have unique names. App automatically creates selection options based on columns.|
 
+Sample data included is from [Guiping Wang et al. (Nature Scientific Reports, 2018)](https://www.nature.com/articles/s41598-018-22297-7).
+
+```
+> zless data.csv.gz
+x,y,gene1,gene2
+-996.7849,-931.8804,ADAM9,ADAM9
+-957.2759,-930.179,ADAM9,ADAM9
+-956.5011,-994.9382,ADAM9,ADAM9
+```
