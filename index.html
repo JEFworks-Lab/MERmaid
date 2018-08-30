@@ -125,10 +125,10 @@
 
     <script type="text/javascript">
 
+     // File reader
      var logTime = function(text) {
 	 console.log('[' + new Date().toUTCString() + '] ' + text);
      }
-
      var fetch = function(data_url, callback) {
 	 logTime('downloading data');
 	 var oReq = new XMLHttpRequest();
@@ -136,19 +136,17 @@
 	 oReq.responseType = "arraybuffer";
 	 oReq.onload = function(oEvent) {
 	     var arrayBuffer = oReq.response;
-	     if (arrayBuffer) {
-		 // Get the compressed data.
-		     var byteArray = new Uint8Array(arrayBuffer);
-		 // Decompress the data.
-		     byteArray = pako.inflate(byteArray)
-		 // Convert to string.
-		 var s = new TextDecoder("utf-8").decode(byteArray)
+	     if (arrayBuffer) {		 
+		 var byteArray = new Uint8Array(arrayBuffer); // Get the compressed data		 
+		 byteArray = pako.inflate(byteArray) // Decompress the data
+		 var s = new TextDecoder("utf-8").decode(byteArray) // Convert to string
 		 callback(s)
 	     }
 	 };
 	 oReq.send(null);
      }
 
+     // DeckGL
      const deckgl = new deck.DeckGL({
 	 views: [new deck.OrbitView({
 	     controller: {
@@ -159,11 +157,11 @@
 	 viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1},
      });
 
-     const OPTIONS = ['radiusScale'];   
-     OPTIONS.forEach(key => {
+     // Controllers
+     const fixed_options = ['radiusScale'];   
+     fixed_options.forEach(key => {
 	 document.getElementById(key).oninput = renderLayer;
-     });
-     
+     });     
      d3.select('#reset').on('click', d => {
 	 console.log('reset view');
 	 deckgl.setProps({
@@ -171,17 +169,41 @@
 	 })
      });
 
-     var selectedGene = '';   
+     const colors = [
+	 [255, 0, 0, 255],
+	 [0, 255, 0, 255],
+	 [0, 0, 255, 255],
+	 [0, 255, 255, 255],
+	 [255, 255, 0, 255]
+     ];
+
+     function fac2col(d) {
+	 if(d[2] === detected_options_selected[detected_options[0]]) {
+	     return(colors[0])
+	 } else if ( d[3] === detected_options_selected[detected_options[1]] ) {
+	     return(colors[1])	     
+	 } else {
+	     return([255, 255, 255, 100])
+	 }
+     }
+     
+     var fixed_options_selected = {};	 
+     var detected_options_selected = {};
      function renderLayer () {
-	 var options = {};	 
-	 OPTIONS.forEach(key => {
+	 
+	 fixed_options.forEach(key => {
 	     const value = document.getElementById(key).value;
 	     document.getElementById(key + '-value').innerHTML = value;
-	     options[key] = Number(value);
+	     fixed_options_selected[key] = Number(value);
 	 });
+	 console.log(fixed_options_selected);
 
-	 console.log(options);
-	 console.log(selectedGene);
+	 detected_options.forEach(key => {
+	     var value = document.getElementById(key).value;
+	     detected_options_selected[key] = value;
+	 });	     
+	 console.log(detected_options_selected);
+	 var option_change_trigger = Object.values(detected_options_selected).join();
 	 
 	 var scatterplotLayer = new
 	 deck.ScatterplotLayer({
@@ -190,8 +212,8 @@
 	     coordinateSystem: deck.COORDINATE_SYSTEM.IDENTITY,
 	     getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
 	     getNormal: d => [0, 1, 0],
-	     getColor: d => (d[2]===selectedGene ? [0, 255, 0, 255] : [255, 255, 255, 100]),
-	     getRadius: d => (d[2]===selectedGene ? 4 : 1),
+	     getColor: fac2col,
+	     getRadius: d => (d[2]===detected_options_selected[detected_options[0]] | d[3]===detected_options_selected[detected_options[1]] ? 4 : 1),
 	     radiusMinPixels: 0.1,
 	     radiusMaxPixels: 10,
 
@@ -207,11 +229,11 @@
 	     onHover: updateTooltip,
 
 	     updateTriggers: {
-		 getColor: selectedGene,
-		 getRadius: selectedGene
+		 getColor: option_change_trigger,
+		 getRadius: option_change_trigger
 	     },
 	     
-	     ...options
+	     ...fixed_options_selected
 	 })
 
 	 deckgl.setProps({
@@ -237,7 +259,7 @@
      // Read data
      const DATA_URL = 'data.csv.gz';
      var header = [];
-     var options = [];
+     var detected_options = [];
      fetch(DATA_URL, function(data_string) {
 	 logTime('parsing data');
 	 data = d3.csvParseRows(
@@ -248,32 +270,40 @@
 	 )
 	 header = data.splice(0,1)[0];
 
-	 options = header.filter(x => ['x', 'y', 'z'].indexOf(x) < 0 );
-	 console.log(options)
-	 var ops = [];
-	 d3.map(options, function(option) {
-	     ops = d3.map(data, function(d){
-		 return d[header.indexOf(option)];
-	     }).keys();
+	 // Automatically fill in options
+	 detected_options = header.filter(x => ['x', 'y', 'z'].indexOf(x) < 0 );
+	 console.log(detected_options)
+         var ops = [];
+	 var detected_options_selected = [];
+	 d3.map(detected_options, function(option) {
+	     ops = []; 
+	     var j = header.indexOf(option);
+	     for (var i = 0; i < data.length; i++) {
+                 if (data[i][j] in ops) {
+		     ops[data[i][j]]++;
+		 } else {
+		     ops[data[i][j]] = 1;
+		 }
+	     }
+	     ops = Object.keys(ops);
 	     iDiv = document.createElement('div');
 	     iDiv.id = option + '_holder';
 	     document.getElementById('control-panel-detected-options').appendChild(iDiv);	     
 	     renderTable(ops, option);
-	     
-	     document.getElementById(option).onchange = function() {
-		 var e = document.getElementById(option);
-		 selectedGene = e.options[e.selectedIndex].value;
-		 console.log(selectedGene);
-		 renderLayer();
-	     }
+
+	     document.getElementById(option).onchange = renderLayer;   
 	 });
-	 selectedGene = ops[0];
-	 
+
+	 // Render
 	 logTime('started rendering layer');
 	 renderLayer();
 	 logTime('finished rendering layer');
+
+	 // Fill in stats
 	 document.getElementById('totalPoints').innerHTML = d3.format(",")(data.length);
-	 document.getElementById('loading').innerHTML = ''; // remove loading
+
+	 // Remove loading
+	 document.getElementById('loading').innerHTML = ''; 
      })
 
     </script>
