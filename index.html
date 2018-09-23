@@ -145,8 +145,11 @@
 	 };
 	 oReq.send(null);
      }
-
+     
      // DeckGL
+     var originX = 0;
+     var originY = 0;
+     var originZ = 0;
      const deckgl = new deck.DeckGL({
 	 views: [new deck.OrbitView({
 	     controller: {
@@ -154,7 +157,9 @@
 		 dragPan: true
 	     }
 	 })],
-	 viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1},
+	 viewState: {
+	     fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1
+	 }
      });
 
      // Controllers
@@ -165,7 +170,10 @@
      d3.select('#reset').on('click', d => {
 	 console.log('reset view');
 	 deckgl.setProps({
-	     viewState: {fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1}
+	     viewState: {
+		 lookAt: [originX, originY, originZ],  
+		 fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1
+	     }
 	 })
      });
 
@@ -189,8 +197,7 @@
      
      var fixed_options_selected = {};	 
      var detected_options_selected = {};
-     function renderLayer () {
-	 
+     function renderLayer () {	 
 	 fixed_options.forEach(key => {
 	     const value = document.getElementById(key).value;
 	     document.getElementById(key + '-value').innerHTML = value;
@@ -270,6 +277,20 @@
 	 )
 	 header = data.splice(0,1)[0];
 
+	 // Detect camera center
+	 originX = d3.mean(data.map((d) => parseInt(d[header.indexOf('x')])));
+	 originY = d3.mean(data.map((d) => parseInt(d[header.indexOf('y')])));
+	 originZ = d3.mean(data.map((d) => parseInt(d[header.indexOf('z')])));
+	 if( originX === undefined) { originX = 0; }
+	 if( originY === undefined) { originY = 0; }
+	 if( originZ === undefined) { originZ = 0; }
+	 deckgl.setProps({
+	     viewState: {
+		 lookAt: [originX, originY, originZ],
+		 fov: 50, distance: 100, rotationX: 0, rotationOrbit: 0, zoom: 1
+	     }
+	 });
+	 
 	 // Automatically fill in options
 	 detected_options = header.filter(x => ['x', 'y', 'z'].indexOf(x) < 0 );
 	 console.log(detected_options)
