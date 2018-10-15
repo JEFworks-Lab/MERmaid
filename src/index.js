@@ -29,14 +29,14 @@ export class MERmaid extends React.Component {
 	this.state = {
 	    data: [],
 	    hull: [],
-	    header: ['x','y','gene', 'cell'],
-	    options: ['gene', 'cell'],
-	    options_selections: {'gene':['a','b','c'], 'cell':['1','1','1']},
+	    header: ['x','y','gene1', 'gene2', 'cell'],
+	    options: ['gene1', 'gene2', 'cell'],
+	    options_selections: {'gene1':['a','b','c'], 'gene2':['a','b','c'], 'cell':['1','1','1']},
 	    origin: [0, 0, 0],
 	    num_points: 0,
 	    
-	    SELECTED: {'gene':'', 'cell':''},
-	    SELECTED_COLOR: {'gene':[0, 128, 255, 255], 'cell':[0, 128, 255, 255]},
+	    SELECTED: {'gene1':'', 'gene2':'', 'cell':''},
+	    SELECTED_COLOR: {'gene1':[0, 128, 255, 255], 'gene2':[0, 128, 255, 255], 'cell':[0, 128, 255, 255]},
 	    BG_COLOR: [80, 80, 80, 80],
 	    RADIUS: 1
 	};
@@ -138,13 +138,6 @@ export class MERmaid extends React.Component {
 	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), 255]})
 
 	    
-	    // unique values for cells
-	    var cells = []
-	    for(var i = 0; i < data.length; i++) {
-	    	if(data[i][header.indexOf('cell')]=='12') {
-	    	    cells.push([parseInt(data[i][header.indexOf('x')]), parseInt(data[i][header.indexOf('y')])])
-	    	}
-	    }
 	    // get convex hull for each
 	    console.log('CONVEX HULLING CELLS')
 	    //var hull = convexHull(cells)
@@ -159,8 +152,6 @@ export class MERmaid extends React.Component {
 		})
 		.entries(data);
 	    hull = hull.map(i => i.value);
-	    console.log(cells)
-	    console.log(hull)
 
 	    mythis.setState({
 		data: data,
@@ -212,21 +203,48 @@ export class MERmaid extends React.Component {
 		getLineWidth: 1
 	    }),
 	    new ScatterplotLayer({
-		id: 'gene-plot',
+		id: 'bg-gene-plot',
 		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf('gene')] === selectedOption['gene'] ? selectedColor['gene'] : bgColor),
-		getRadius: d => (d[header.indexOf('gene')] === selectedOption['gene'] ? 2 : 1),
+		getColor: bgColor,
+		getRadius: 1,
+		radiusScale: radius,
+		
+		pickable: true,
+		onHover: updateTooltip
+	    }),
+	    new ScatterplotLayer({
+		id: 'gene1-plot',
+		data: data,
+		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
+		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
+		getColor: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? selectedColor['gene1'] : bgColor),
+		getRadius: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? 2 : 1),
 		radiusScale: radius,
 		
 		updateTriggers: {
-		    getColor: [selectedColor['gene'], selectedOption['gene']],
-		    getRadius: [selectedOption['gene']]
+		    getColor: [selectedColor['gene1'], selectedOption['gene1']],
+		    getRadius: [selectedOption['gene1']]
 		},
 
-		pickable: true,
-		onHover: updateTooltip
+		pickable: false
+	    }),
+	    new ScatterplotLayer({
+		id: 'gene2-plot',
+		data: data,
+		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
+		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
+		getColor: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? selectedColor['gene2'] : bgColor),
+		getRadius: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? 2 : 1),
+		radiusScale: radius,
+		
+		updateTriggers: {
+		    getColor: [selectedColor['gene2'], selectedOption['gene2']],
+		    getRadius: [selectedOption['gene2']]
+		},
+
+		pickable: false
 	    })
 	];
     }
@@ -272,12 +290,20 @@ export class MERmaid extends React.Component {
 		<div> size: <input type="range" min="0.1" max="5" step="0.1" value={this.state.RADIUS} class="slider" onChange={(value) => this.updateRadius(value)}></input></div>
 		
 		<Menu
-	           id= 'gene'
-	           options = { this.state.options_selections['gene'] }
-	           color= { this.state.SELECTED_COLOR['gene'] }
-	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], 'gene') }
-	           selected = { this.state.SELECTED['gene'] }
-	           onChangeSelect= {(selected) => this.updateSelection( selected, 'gene' ) }	    
+	           id= 'gene1'
+	           options = { this.state.options_selections['gene1'] }
+	           color= { this.state.SELECTED_COLOR['gene1'] }
+	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], 'gene1') }
+	           selected = { this.state.SELECTED['gene1'] }
+	           onChangeSelect= {(selected) => this.updateSelection( selected, 'gene1' ) }	    
+		/>
+		<Menu
+	           id= 'gene2'
+	           options = { this.state.options_selections['gene2'] }
+	           color= { this.state.SELECTED_COLOR['gene2'] }
+	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], 'gene2') }
+	           selected = { this.state.SELECTED['gene2'] }
+	           onChangeSelect= {(selected) => this.updateSelection( selected, 'gene2' ) }	    
 		/>
 
 		<hr></hr>
