@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import reactCSS from 'reactcss'
-import DeckGL, {ScatterplotLayer, COORDINATE_SYSTEM, OrthographicView} from 'deck.gl';
+import DeckGL, {ScatterplotLayer, PolygonLayer, COORDINATE_SYSTEM, OrthographicView} from 'deck.gl';
 import { SketchPicker } from 'react-color';
 import pako from 'pako';
 import * as d3 from 'd3';
+import * as convexHull from './hull.js';
 
 const DATA_URL = 'data.csv.gz'
 
@@ -27,14 +28,15 @@ export class MERmaid extends React.Component {
 	super(props);
 	this.state = {
 	    data: [],
-	    header: ['x','y','test'],
-	    options: ['test'],
-	    options_selections: {'test':['a','b','c']},
+	    hull: [],
+	    header: ['x','y','gene', 'cell'],
+	    options: ['gene', 'cell'],
+	    options_selections: {'gene':['a','b','c'], 'cell':['1','1','1']},
 	    origin: [0, 0, 0],
 	    num_points: 0,
 	    
-	    SELECTED: {'test':''},
-	    SELECTED_COLOR: {'test':[0, 128, 255, 255]},
+	    SELECTED: {'gene':'', 'cell':''},
+	    SELECTED_COLOR: {'gene':[0, 128, 255, 255], 'cell':[0, 128, 255, 255]},
 	    BG_COLOR: [80, 80, 80, 80],
 	    RADIUS: 1
 	};
@@ -134,9 +136,35 @@ export class MERmaid extends React.Component {
 	    options.map((d) => {selected[d]=''})
 	    var selectedColor = {}
 	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), 255]})
-	    	    
+
+	    
+	    // unique values for cells
+	    var cells = []
+	    for(var i = 0; i < data.length; i++) {
+	    	if(data[i][header.indexOf('cell')]=='12') {
+	    	    cells.push([parseInt(data[i][header.indexOf('x')]), parseInt(data[i][header.indexOf('y')])])
+	    	}
+	    }
+	    // get convex hull for each
+	    console.log('CONVEX HULLING CELLS')
+	    //var hull = convexHull(cells)
+	    var hull = d3.nest()
+		.key(function(d) { return d[header.indexOf('cell')]; })
+		.rollup(function(v) {
+		    return convexHull(v.map(i => [
+			parseInt(i[header.indexOf('x')]),
+			parseInt(i[header.indexOf('y')])
+		    ])
+				     )
+		})
+		.entries(data);
+	    hull = hull.map(i => i.value);
+	    console.log(cells)
+	    console.log(hull)
+
 	    mythis.setState({
 		data: data,
+		hull: hull,
 		header: header,
 		options: options,
 		options_selections: opts,
@@ -157,6 +185,7 @@ export class MERmaid extends React.Component {
     renderLayers() {
 	const {
 	    data = this.state.data,
+	    hull = this.state.hull,
 	    header = this.state.header,
 	    options = this.state.options,
 	    
@@ -168,22 +197,32 @@ export class MERmaid extends React.Component {
 	} = this.props;
 	
 	console.log('RENDERING LAYER')
-	console.log(header)
-	console.log(selectedOption[options[0]])
-	    
+
 	return [
+	    new PolygonLayer({
+		id: 'cell-plot',
+		data: hull,
+		coordinateSystem: COORDINATE_SYSTEM.IDENTITY, 
+		pickable: false,
+		stroked: true,
+		filled: true,
+		getPolygon: d => d,
+		getFillColor: [80, 80, 80, 50],
+		getLineColor: [80, 80, 80, 80],
+		getLineWidth: 1
+	    }),
 	    new ScatterplotLayer({
-		id: 'scatter-plot',
-		data,
+		id: 'gene-plot',
+		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf(options[0])] === selectedOption[options[0]] ? selectedColor[options[0]] : bgColor),
-		getRadius: d => (d[header.indexOf(options[0])] === selectedOption[options[0]] ? 2 : 1),
+		getColor: d => (d[header.indexOf('gene')] === selectedOption['gene'] ? selectedColor['gene'] : bgColor),
+		getRadius: d => (d[header.indexOf('gene')] === selectedOption['gene'] ? 2 : 1),
 		radiusScale: radius,
 		
 		updateTriggers: {
-		    getColor: [selectedColor[options[0]], selectedOption[options[0]]],
-		    getRadius: [selectedOption[options[0]]]
+		    getColor: [selectedColor['gene'], selectedOption['gene']],
+		    getRadius: [selectedOption['gene']]
 		},
 
 		pickable: true,
@@ -233,12 +272,12 @@ export class MERmaid extends React.Component {
 		<div> size: <input type="range" min="0.1" max="5" step="0.1" value={this.state.RADIUS} class="slider" onChange={(value) => this.updateRadius(value)}></input></div>
 		
 		<Menu
-	           id= { this.state.options[0] }
-	           options = { this.state.options_selections[this.state.options[0]] }
-	           color= { this.state.SELECTED_COLOR[this.state.options[0]] }
-	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], this.state.options[0]) }
-	           selected = { this.state.SELECTED[this.state.options[0]] }
-	           onChangeSelect= {(selected) => this.updateSelection( selected, this.state.options[0] ) }	    
+	           id= 'gene'
+	           options = { this.state.options_selections['gene'] }
+	           color= { this.state.SELECTED_COLOR['gene'] }
+	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], 'gene') }
+	           selected = { this.state.SELECTED['gene'] }
+	           onChangeSelect= {(selected) => this.updateSelection( selected, 'gene' ) }	    
 		/>
 
 		<hr></hr>
