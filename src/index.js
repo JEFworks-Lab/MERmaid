@@ -33,8 +33,8 @@ export class MERmaid extends React.Component {
 	    origin: [0, 0, 0],
 	    num_points: 0,
 	    
-	    SELECTED: '',
-	    SELECTED_COLOR: [0, 128, 255, 255],
+	    SELECTED: {'test':''},
+	    SELECTED_COLOR: {'test':[0, 128, 255, 255]},
 	    BG_COLOR: [80, 80, 80, 80],
 	    RADIUS: 1
 	};
@@ -50,15 +50,21 @@ export class MERmaid extends React.Component {
 	console.log(rad.target.value)
 	this.setState({ RADIUS: Number(rad.target.value) });
     }
-    updateSelectedColor(color) {
+    updateSelectedColor(color, id) {
 	console.log('UPDATING COLOR')
+	console.log(id)
 	console.log(color)
-	this.setState({ SELECTED_COLOR: color });
+	var temp = this.state.SELECTED_COLOR
+	temp[id] = color
+	this.setState({ SELECTED_COLOR: temp });
     }
-    updateSelection(opt) {
+    updateSelection(opt, id) {
 	console.log('UPDATING SELECTION')
+	console.log(id)
 	console.log(opt.target.value)
-	this.setState({ SELECTED: opt.target.value });
+	var temp = this.state.SELECTED
+	temp[id] = opt.target.value
+	this.setState({ SELECTED: temp });
     }
 
     loadData() {
@@ -95,7 +101,8 @@ export class MERmaid extends React.Component {
 	    logTime('setting data');
 	    var header = data.splice(0,1)[0];
 	    var options = header.filter(x => ['x', 'y', 'z'].indexOf(x) < 0 );
-
+	    console.log(options)
+	    
 	    var opts = {};
 	    d3.map(options, function(option) {
 		var ops = [];
@@ -112,7 +119,6 @@ export class MERmaid extends React.Component {
 	    });
 	    logTime('detected options');
 	    console.log(opts);
-	    console.log(opts[options[0]][0]);
 	    
 	    var originX = d3.mean(data.map((d) => parseInt(d[header.indexOf('x')])));
 	    var originY = d3.mean(data.map((d) => parseInt(d[header.indexOf('y')])));
@@ -123,6 +129,11 @@ export class MERmaid extends React.Component {
 	    var origin = [originX, originY, originZ]
 	    logTime('detected origin');
 	    console.log(origin)
+
+	    var selected = {}
+	    options.map((d) => {selected[d]=''})
+	    var selectedColor = {}
+	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), 255]})
 	    	    
 	    mythis.setState({
 		data: data,
@@ -130,7 +141,9 @@ export class MERmaid extends React.Component {
 		options: options,
 		options_selections: opts,
 		origin: origin,
-		num_points: data.length
+		num_points: data.length,
+		SELECTED: selected,
+		SELECTED_COLOR: selectedColor
 	    })
 
 	};
@@ -154,19 +167,23 @@ export class MERmaid extends React.Component {
 	    
 	} = this.props;
 	
+	console.log('RENDERING LAYER')
+	console.log(header)
+	console.log(selectedOption[options[0]])
+	    
 	return [
 	    new ScatterplotLayer({
 		id: 'scatter-plot',
 		data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf(options[0])] === selectedOption ? selectedColor : bgColor),
-		getRadius: d => (d[header.indexOf(options[0])] === selectedOption ? 2 : 1),
+		getColor: d => (d[header.indexOf(options[0])] === selectedOption[options[0]] ? selectedColor[options[0]] : bgColor),
+		getRadius: d => (d[header.indexOf(options[0])] === selectedOption[options[0]] ? 2 : 1),
 		radiusScale: radius,
 		
 		updateTriggers: {
-		    getColor: [selectedColor, selectedOption],
-		    getRadius: [selectedOption]
+		    getColor: [selectedColor[options[0]], selectedOption[options[0]]],
+		    getRadius: [selectedOption[options[0]]]
 		},
 
 		pickable: true,
@@ -211,15 +228,17 @@ export class MERmaid extends React.Component {
 	            }}
 	        />
 		<div style={ styles.main }>
+
 		<div> points rendered: { this.state.num_points } </div>
 		<div> size: <input type="range" min="0.1" max="5" step="0.1" value={this.state.RADIUS} class="slider" onChange={(value) => this.updateRadius(value)}></input></div>
+		
 		<Menu
 	           id= { this.state.options[0] }
 	           options = { this.state.options_selections[this.state.options[0]] }
-	           color= { this.state.SELECTED_COLOR }
-	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ]) }
-	           selected = { this.state.SELECTED }
-	           onChangeSelect= {(selected) => this.updateSelection( selected ) }	    
+	           color= { this.state.SELECTED_COLOR[this.state.options[0]] }
+	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], this.state.options[0]) }
+	           selected = { this.state.SELECTED[this.state.options[0]] }
+	           onChangeSelect= {(selected) => this.updateSelection( selected, this.state.options[0] ) }	    
 		/>
 
 		<hr></hr>
@@ -251,6 +270,8 @@ class Menu extends React.Component {
     };
 
     render() {
+	console.log(this.props.color)
+	
 	const styles = reactCSS({
 	    'default': {
 		label: {
