@@ -168,9 +168,9 @@ export class MERmaid extends React.Component {
 	};
 
 	var ccb = (mythis) => ( (data_string) => cb(data_string, mythis) )
-	var butt = ccb(this)
+	var foo = ccb(this)
 
-	fetch(DATA_URL, butt);
+	fetch(DATA_URL, foo);
     }
 
     renderLayers() {
@@ -219,8 +219,8 @@ export class MERmaid extends React.Component {
 		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? selectedColor['gene1'] : bgColor),
-		getRadius: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? 2 : 1),
+		getColor: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? selectedColor['gene1'] : [0,0,0,0]),
+		getRadius: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? 2 : 0),
 		radiusScale: radius,
 		
 		updateTriggers: {
@@ -235,8 +235,8 @@ export class MERmaid extends React.Component {
 		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? selectedColor['gene2'] : bgColor),
-		getRadius: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? 2 : 1),
+		getColor: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? selectedColor['gene2'] : [0,0,0,0]),
+		getRadius: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? 2 : 0),
 		radiusScale: radius,
 		
 		updateTriggers: {
