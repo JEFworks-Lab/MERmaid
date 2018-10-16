@@ -1,19 +1,43 @@
-clone
+# MERmaid
 
-To install after cloning and start development server
+![mermaid logo](mermaid_logo.svg)
+
+WebGL-based viewer for MERFISH data
+
+## Online Demo: 
+[https://jef.works/MERmaid/](https://jef.works/MERmaid/)
+
+![mermaid demo](mermaid_demo.gif)
+
+## Download
+
+### Clone repo
+```
+git clone https://github.com/JEFworks/MERmaid.git
+cd MERmaid
+```
+
+## Re-build
+
+### Install after cloning and start development server
 ```
 npm install
 npm start
 ```
 
-To build for release
+### Build for release
 ```
 npm run-script build
 ```
 
-To just run without installation
+### Optional renaming for Github purposes
 ```
-cd build
+mv build docs 
+```
+
+## Run without re-building
+```
+cd docs
 # Check python version
 python -V
 # If Python version returned above is 3.X
