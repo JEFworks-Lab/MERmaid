@@ -1,11 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import reactCSS from 'reactcss'
-import DeckGL, {ScatterplotLayer, PolygonLayer, COORDINATE_SYSTEM, OrthographicView} from 'deck.gl';
+import DeckGL, {ScatterplotLayer, COORDINATE_SYSTEM, OrthographicView} from 'deck.gl';
 import { SketchPicker } from 'react-color';
 import pako from 'pako';
 import * as d3 from 'd3';
-import * as convexHull from './hull.js';
 
 const DATA_URL = 'data.csv.gz'
 
@@ -28,15 +27,14 @@ export class MERmaid extends React.Component {
 	super(props);
 	this.state = {
 	    data: [],
-	    hull: [],
-	    header: ['x','y','gene1', 'gene2', 'cell'],
-	    options: ['gene1', 'gene2', 'cell'],
-	    options_selections: {'gene1':['a','b','c'], 'gene2':['a','b','c'], 'cell':['1','1','1']},
+	    header: ['x','y','gene1', 'gene2'],
+	    options: ['gene1', 'gene2'],
+	    options_selections: {'gene1':['a','b','c'], 'gene2':['a','b','c']},
 	    origin: [0, 0, 0],
 	    num_points: 0,
 	    
-	    SELECTED: {'gene1':'', 'gene2':'', 'cell':''},
-	    SELECTED_COLOR: {'gene1':[0, 128, 255, 255], 'gene2':[0, 128, 255, 255], 'cell':[0, 128, 255, 255]},
+	    SELECTED: {'gene1':'', 'gene2':''},
+	    SELECTED_COLOR: {'gene1':[0, 128, 255, 255], 'gene2':[0, 128, 255, 255]},
 	    BG_COLOR: [80, 80, 80, 80],
 	    RADIUS: 1
 	};
@@ -138,24 +136,8 @@ export class MERmaid extends React.Component {
 	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), 255]})
 
 	    
-	    // get convex hull for each
-	    console.log('CONVEX HULLING CELLS')
-	    //var hull = convexHull(cells)
-	    var hull = d3.nest()
-		.key(function(d) { return d[header.indexOf('cell')]; })
-		.rollup(function(v) {
-		    return convexHull(v.map(i => [
-			parseInt(i[header.indexOf('x')]),
-			parseInt(i[header.indexOf('y')])
-		    ])
-				     )
-		})
-		.entries(data);
-	    hull = hull.map(i => i.value);
-
 	    mythis.setState({
 		data: data,
-		hull: hull,
 		header: header,
 		options: options,
 		options_selections: opts,
@@ -176,7 +158,6 @@ export class MERmaid extends React.Component {
     renderLayers() {
 	const {
 	    data = this.state.data,
-	    hull = this.state.hull,
 	    header = this.state.header,
 	    options = this.state.options,
 	    
@@ -190,18 +171,6 @@ export class MERmaid extends React.Component {
 	console.log('RENDERING LAYER')
 
 	return [
-	    new PolygonLayer({
-		id: 'cell-plot',
-		data: hull,
-		coordinateSystem: COORDINATE_SYSTEM.IDENTITY, 
-		pickable: false,
-		stroked: true,
-		filled: true,
-		getPolygon: d => d,
-		getFillColor: [80, 80, 80, 50],
-		getLineColor: [80, 80, 80, 80],
-		getLineWidth: 1
-	    }),
 	    new ScatterplotLayer({
 		id: 'bg-gene-plot',
 		data: data,
