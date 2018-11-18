@@ -47,4 +47,8 @@ python -m SimpleHTTPServer 8080
 ```
 
 Then point your browser to http://localhost:8080/
+Alternatively http://127.0.0.1:8080/
 
+## Using your own data
+
+Replace the `data.csv.gz` file in the docs/ folder and follow the `Run without re-building` steps above. 
