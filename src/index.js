@@ -6,8 +6,19 @@ import { SketchPicker } from 'react-color';
 import pako from 'pako';
 import * as d3 from 'd3';
 import * as convexHull from './hull.js';
+import BitmapLayer from './bitmap-layer.js';
 
+const IMAGES = {
+    BG: 'bg.png',
+};
 const DATA_URL = 'data.csv.gz'
+
+function toRadians(degrees) {
+    function toRadian(degree) {
+	return (Math.PI * degree) / 180;
+    }
+    return degrees.map(d => toRadian(d));
+}
 
 function updateTooltip({x, y, object}) {
     const tooltip = document.getElementById('tooltip');
@@ -190,6 +201,19 @@ export class MERmaid extends React.Component {
 	console.log('RENDERING LAYER')
 
 	return [
+	    new BitmapLayer({
+		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
+		id: 'bg-layer',
+		images: Object.values(IMAGES),
+		data: [
+		    {
+			imageUrl: IMAGES.BG,
+			rotation: toRadians([0, 0, 0]),  
+			center: this.state.origin,
+			scale: 2000
+		    }
+		]
+	    }),	    
 	    new PolygonLayer({
 		id: 'cell-plot',
 		data: hull,
@@ -281,7 +305,7 @@ export class MERmaid extends React.Component {
 	            layers={this.renderLayers()}
 	            initialViewState={{
 			lookAt: this.state.origin,
-			zoom: 0.5
+			zoom: 1
 	            }}
 	        />
 		<div style={ styles.main }>
