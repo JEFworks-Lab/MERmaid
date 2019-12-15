@@ -5,7 +5,7 @@ import DeckGL, {ScatterplotLayer, PolygonLayer, COORDINATE_SYSTEM, OrthographicV
 import { SketchPicker } from 'react-color';
 import pako from 'pako';
 import * as d3 from 'd3';
-import * as convexHull from './hull.js';
+//import * as convexHull from './hull.js';
 import BitmapLayer from './bitmap-layer.js';
 
 const IMAGES = {
@@ -39,23 +39,27 @@ export class MERmaid extends React.Component {
 	super(props);
 	this.state = {
 	    data: [],
-	    hull: [],
-	    header: ['x','y','gene1', 'gene2', 'cell'],
-	    options: ['gene1', 'gene2', 'cell'],
-	    options_selections: {'gene1':['a','b','c'], 'gene2':['a','b','c'], 'cell':['1','1','1']},
+	    //hull: [],
+	    header: ['x','y','gene0'],
+	    options: ['gene0'],
+	    options_selections: {'gene0':['a','b','c']},
 	    origin: [0, 0, 0],
 	    num_points: 0,
 	    
-	    SELECTED: {'gene1':'', 'gene2':'', 'cell':''},
-	    SELECTED_COLOR: {'gene1':[0, 128, 255, 255], 'gene2':[0, 128, 255, 255], 'cell':[0, 128, 255, 255]},
+	    SELECTED: {'gene0':''},
+	    SELECTED_COLOR: {'gene0':[0, 128, 255]},
 	    BG_COLOR: [80, 80, 80, 80],
-	    RADIUS: 1
+	    RADIUS: 1,
+	    NUMGENES: 0 // number of extra genes (start at 0 for easy indexing)	   
 	};
 
 	this.loadData();
 	this.updateSelectedColor = this.updateSelectedColor.bind(this);
 	this.updateSelection = this.updateSelection.bind(this);
 	this.updateRadius = this.updateRadius.bind(this);
+	
+	this.increaseNumGenes = this.increaseNumGenes.bind(this);
+	this.decreaseNumGenes = this.decreaseNumGenes.bind(this);
     }
 
     updateRadius(rad) {
@@ -78,6 +82,51 @@ export class MERmaid extends React.Component {
 	var temp = this.state.SELECTED
 	temp[id] = opt.target.value
 	this.setState({ SELECTED: temp });
+    }
+    increaseNumGenes() {
+	if(this.state.NUMGENES < 10) {
+	    console.log('INCREASING GENE SELECTION')
+	    var ng = this.state.NUMGENES + 1
+	    console.log(ng)
+
+	    var tempOptions = this.state.options
+	    var tempOptionsSelections = this.state.options_selections	    
+	    var tempSelected = this.state.SELECTED
+	    var tempSelectedColor = this.state.SELECTED_COLOR
+	    tempOptions.push('gene'+ng)		
+	    tempOptionsSelections['gene'+ng] = tempOptionsSelections['gene0'] // same gene list	
+	    tempSelected['gene'+ng] = ''	    
+	    tempSelectedColor['gene'+ng] = [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)]
+	    	
+	    this.setState({ options: tempOptions});
+	    this.setState({ options_selections: tempOptionsSelections});
+	    this.setState({ SELECTED: tempSelected});
+	    this.setState({ SELECTED_COLOR: tempSelectedColor});	    
+	    this.setState({ NUMGENES: ng });	
+	}
+    }
+    decreaseNumGenes() {
+	if(this.state.NUMGENES > 0) {
+	    console.log('DECREASING GENE SELECTION')
+	    var ng0 = this.state.NUMGENES
+	    var ng = ng0 - 1
+	    console.log(ng)
+
+	    var tempOptions = this.state.options
+	    var tempOptionsSelections = this.state.options_selections	    
+	    var tempSelected = this.state.SELECTED
+	    var tempSelectedColor = this.state.SELECTED_COLOR
+	    tempOptions.splice(tempOptions.indexOf('gene'+ng0),1)
+	    delete tempOptionsSelections['gene'+ng0]
+	    delete tempSelected['gene'+ng0]
+	    delete tempSelectedColor['gene'+ng0]
+	    	
+	    this.setState({ options: tempOptions});
+	    this.setState({ options_selections: tempOptionsSelections});
+	    this.setState({ SELECTED: tempSelected});
+	    this.setState({ SELECTED_COLOR: tempSelectedColor});	    
+	    this.setState({ NUMGENES: ng });	
+	}
     }
 
     loadData() {
@@ -146,27 +195,27 @@ export class MERmaid extends React.Component {
 	    var selected = {}
 	    options.map((d) => {selected[d]=''})
 	    var selectedColor = {}
-	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), 255]})
+	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)]})
 
 	    
-	    // get convex hull for each
-	    console.log('CONVEX HULLING CELLS')
-	    //var hull = convexHull(cells)
-	    var hull = d3.nest()
-		.key(function(d) { return d[header.indexOf('cell')]; })
-		.rollup(function(v) {
-		    return convexHull(v.map(i => [
-			parseInt(i[header.indexOf('x')]),
-			parseInt(i[header.indexOf('y')])
-		    ])
-				     )
-		})
-		.entries(data);
-	    hull = hull.map(i => i.value);
+	    // // get convex hull for each
+	    // console.log('CONVEX HULLING CELLS')
+	    // //var hull = convexHull(cells)
+	    // var hull = d3.nest()
+	    // 	.key(function(d) { return d[header.indexOf('cell')]; })
+	    // 	.rollup(function(v) {
+	    // 	    return convexHull(v.map(i => [
+	    // 		parseInt(i[header.indexOf('x')]),
+	    // 		parseInt(i[header.indexOf('y')])
+	    // 	    ])
+	    // 			     )
+	    // 	})
+	    // 	.entries(data);
+	    // hull = hull.map(i => i.value);
 
 	    mythis.setState({
 		data: data,
-		hull: hull,
+		//hull: hull,
 		header: header,
 		options: options,
 		options_selections: opts,
@@ -187,19 +236,44 @@ export class MERmaid extends React.Component {
     renderLayers() {
 	const {
 	    data = this.state.data,
-	    hull = this.state.hull,
+	    //hull = this.state.hull,
 	    header = this.state.header,
 	    options = this.state.options,
 	    
+	    numgenes = this.state.NUMGENES,
 	    radius = this.state.RADIUS,
 	    selectedColor = this.state.SELECTED_COLOR,
 	    bgColor = this.state.BG_COLOR,
 	    selectedOption = this.state.SELECTED,
 	    
-	} = this.props;
+	} = this.props;	
 	
 	console.log('RENDERING LAYER')
+	console.log(numgenes);
+	console.log(options);
+	console.log(selectedOption);
+	console.log(selectedColor);
 
+	// Helper functions
+	function getColorHelper(d) {
+	    var color = [0, 0, 0] // default
+	    for(var i = 0; i <= numgenes; i++) {
+		if(d[header.indexOf('gene0')] === selectedOption[options[i]]) {
+		    color = selectedColor[options[i]]
+		}
+	    }
+	    return(color)
+	}
+	function getRadiusHelper(d) {
+	    var rad = 0 // default
+	    for(var i = 0; i <= numgenes; i++) {
+		if(d[header.indexOf('gene0')] === selectedOption[options[i]]) {
+		    rad = 2
+		}
+	    }
+	    return(rad)
+	}
+    
 	return [
 	    new BitmapLayer({
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
@@ -214,18 +288,18 @@ export class MERmaid extends React.Component {
 		    }
 		]
 	    }),	    
-	    new PolygonLayer({
-		id: 'cell-plot',
-		data: hull,
-		coordinateSystem: COORDINATE_SYSTEM.IDENTITY, 
-		pickable: false,
-		stroked: true,
-		filled: true,
-		getPolygon: d => d,
-		getFillColor: [80, 80, 80, 50],
-		getLineColor: [80, 80, 80, 80],
-		getLineWidth: 1
-	    }),
+	    // new PolygonLayer({
+	    // 	id: 'cell-plot',
+	    // 	data: hull,
+	    // 	coordinateSystem: COORDINATE_SYSTEM.IDENTITY, 
+	    // 	pickable: false,
+	    // 	stroked: true,
+	    // 	filled: true,
+	    // 	getPolygon: d => d,
+	    // 	getFillColor: [80, 80, 80, 50],
+	    // 	getLineColor: [80, 80, 80, 80],
+	    // 	getLineWidth: 1
+	    // }),
 	    new ScatterplotLayer({
 		id: 'bg-gene-plot',
 		data: data,
@@ -239,33 +313,17 @@ export class MERmaid extends React.Component {
 		onHover: updateTooltip
 	    }),
 	    new ScatterplotLayer({
-		id: 'gene1-plot',
+		id: 'gene-plot',
 		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? selectedColor['gene1'] : [0,0,0,0]),
-		getRadius: d => (d[header.indexOf('gene1')] === selectedOption['gene1'] ? 2 : 0),
+		getColor: d => getColorHelper(d),
+		getRadius: d => getRadiusHelper(d),
 		radiusScale: radius,
 		
 		updateTriggers: {
-		    getColor: [selectedColor['gene1'], selectedOption['gene1']],
-		    getRadius: [selectedOption['gene1']]
-		},
-
-		pickable: false
-	    }),
-	    new ScatterplotLayer({
-		id: 'gene2-plot',
-		data: data,
-		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
-		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
-		getColor: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? selectedColor['gene2'] : [0,0,0,0]),
-		getRadius: d => (d[header.indexOf('gene2')] === selectedOption['gene2'] ? 2 : 0),
-		radiusScale: radius,
-		
-		updateTriggers: {
-		    getColor: [selectedColor['gene2'], selectedOption['gene2']],
-		    getRadius: [selectedOption['gene2']]
+		    getColor: [Object.values(selectedColor), Object.values(selectedOption)],
+		    getRadius: [Object.values(selectedOption)]
 		},
 
 		pickable: false
@@ -281,7 +339,7 @@ export class MERmaid extends React.Component {
 		    fontSize: '14px',
 		    background: `rgba(80,80,80,0.8)`,
 		    padding: '10px',
-		    width: '200px',
+		    width: '300px',
 		    position: 'relative',
 		    zIndex: '0'
 		}
@@ -297,39 +355,45 @@ export class MERmaid extends React.Component {
 	       })]
  	      } = this.props;
 
+	var menu = [];
+	for (var i = 0; i <= this.state.NUMGENES; i++) {
+
+	    var idd = 'gene'+i;
+	    console.log(idd)
+	    
+ 	    var menuString = <Menu
+	    id= {idd}
+	    options = { this.state.options_selections[idd] }
+	    color= { this.state.SELECTED_COLOR[idd] }
+	    onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], idd) }
+	    selected = { this.state.SELECTED[idd] }
+	    onChangeSelect= {(selected) => this.updateSelection( selected, idd ) }	    
+		/>;
+	    menu.push(menuString)
+	}
+
 	return (
-	    <div>
+		<div>
 	        <DeckGL
-	            views={view}	    
-	            viewState={viewState}
-	            layers={this.renderLayers()}
-	            initialViewState={{
-			lookAt: this.state.origin,
-			zoom: 1
-	            }}
+	    views={view}	    
+	    viewState={viewState}
+	    layers={this.renderLayers()}
+	    initialViewState={{
+		lookAt: this.state.origin,
+		zoom: 1
+	    }}
 	        />
 		<div style={ styles.main }>
 
 		<div> points rendered: { this.state.num_points } </div>
+		<div> genes highlighted:
+	        <button onClick = {this.decreaseNumGenes}> - </button><button onClick={this.increaseNumGenes}> + </button> 
+	        </div>
 		<div> size: <input type="range" min="0.1" max="5" step="0.1" value={this.state.RADIUS} class="slider" onChange={(value) => this.updateRadius(value)}></input></div>
 		
-		<Menu
-	           id= 'gene1'
-	           options = { this.state.options_selections['gene1'] }
-	           color= { this.state.SELECTED_COLOR['gene1'] }
-	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], 'gene1') }
-	           selected = { this.state.SELECTED['gene1'] }
-	           onChangeSelect= {(selected) => this.updateSelection( selected, 'gene1' ) }	    
-		/>
-		<Menu
-	           id= 'gene2'
-	           options = { this.state.options_selections['gene2'] }
-	           color= { this.state.SELECTED_COLOR['gene2'] }
-	           onChangeColor= {(color) => this.updateSelectedColor( [ color.rgb.r, color.rgb.g, color.rgb.b ], 'gene2') }
-	           selected = { this.state.SELECTED['gene2'] }
-	           onChangeSelect= {(selected) => this.updateSelection( selected, 'gene2' ) }	    
-		/>
-
+		<hr></hr>
+		{menu}
+	    
 		<hr></hr>
 		
 		<a href="data.csv.gz"><button>Download Data</button></a>
@@ -340,7 +404,6 @@ export class MERmaid extends React.Component {
 	);
     }
 }
-
 
 class Menu extends React.Component {    
     constructor(props) {
@@ -359,8 +422,6 @@ class Menu extends React.Component {
     };
 
     render() {
-	console.log(this.props.color)
-	
 	const styles = reactCSS({
 	    'default': {
 		label: {
@@ -396,19 +457,19 @@ class Menu extends React.Component {
 	});
 
 	return (
-	    <div>
-		<span style={ styles.label }> { this.props.id } </span>
+		<div id={ 'Menu'+this.props.id }>
+		<span id={ 'Label'+this.props.id } style={ styles.label }> { this.props.id } </span>
 	        
-		<select style={ styles.label } value={this.props.selected} onChange={ this.props.onChangeSelect }>
+		<select id={ 'Option'+this.props.id } style={ styles.label } value={this.props.selected} onChange={ this.props.onChangeSelect }>
 		{this.props.options.map((i) => {
 		    return (<option value={i}>{i}</option>)
 		})}
-	        </select>
+	    </select>
 		
-		<div style={ styles.color } onClick={ this.handleClick } />
+		<div id={ 'ColorPicker'+this.props.id } style={ styles.color } onClick={ this.handleClick } />
 		{ this.state.displayColorPicker ? <div style={ styles.popover }>
 		  <div style={ styles.cover } onClick={ this.handleClose }/>
-		  <SketchPicker color={ this.props.color } onChange={ this.props.onChangeColor } />
+		  <SketchPicker id={ 'SketchPicker'+this.props.id } color={ this.props.color } onChange={ this.props.onChangeColor } />
 		  </div> : null }		
 	    </div>
 	);
@@ -416,6 +477,6 @@ class Menu extends React.Component {
 }
 
 ReactDOM.render(
-    <MERmaid />,
+	<MERmaid />,
     document.getElementById('root')
 );
