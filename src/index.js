@@ -257,18 +257,22 @@ export class MERmaid extends React.Component {
 	// Helper functions
 	function getColorHelper(d) {
 	    var color = [0, 0, 0] // default
-	    for(var i = 0; i <= numgenes; i++) {
-		if(d[header.indexOf('gene0')] === selectedOption[options[i]]) {
-		    color = selectedColor[options[i]]
+	    if(Object.values(selectedOption).includes(d[header.indexOf('gene0')])) {
+		for(var i = 0; i <= numgenes; i++) {
+		    if(d[header.indexOf('gene0')] === selectedOption[options[i]]) {
+			color = selectedColor[options[i]]
+		    }
 		}
 	    }
 	    return(color)
 	}
 	function getRadiusHelper(d) {
 	    var rad = 0 // default
-	    for(var i = 0; i <= numgenes; i++) {
-		if(d[header.indexOf('gene0')] === selectedOption[options[i]]) {
-		    rad = 2
+	    if(Object.values(selectedOption).includes(d[header.indexOf('gene0')])) {
+		for(var i = 0; i <= numgenes; i++) {
+		    if(d[header.indexOf('gene0')] === selectedOption[options[i]]) {
+			rad = 2
+		    }
 		}
 	    }
 	    return(rad)
