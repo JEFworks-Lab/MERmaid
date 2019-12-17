@@ -1,22 +1,22 @@
 {
-			"name": "MERmaid",
-			"version": "0.1.0",
-			"homepage": "https://jef.works/MERmaid/",
-			"private": true,
-			"dependencies": {
-						"d3": "^5.7.0",
-						"deck.gl": "^6.1.1",
-						"pako": "^1.0.6",
-						"react": "^16.5.2",
-						"react-color": "^2.14.1",
-						"react-dom": "^16.5.2",
-						"react-scripts": "1.1.5",
-						"reactcss": "^1.2.3"
-			},
-			"scripts": {
-						"start": "react-scripts start",
-						"build": "react-scripts build",
-						"test": "react-scripts test --env=jsdom",
-						"eject": "react-scripts eject"
-			}
+    "name": "MERmaid",
+    "version": "0.1.0",
+    "homepage": "https://jef.works/MERmaid/",
+    "private": true,
+    "dependencies": {
+	"d3": "^5.7.0",
+	"deck.gl": "^6.1.1",
+	"pako": "^1.0.6",
+	"react": "^16.5.2",
+	"react-color": "^2.14.1",
+	"react-dom": "^16.5.2",
+	"react-scripts": "1.1.5",
+	"reactcss": "^1.2.3"
+    },
+    "scripts": {
+	"start": "react-scripts start",
+	"build": "react-scripts build",
+	"test": "react-scripts test --env=jsdom",
+	"eject": "react-scripts eject"
+    }
 }
