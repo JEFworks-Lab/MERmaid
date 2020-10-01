@@ -5,7 +5,7 @@ import DeckGL, {ScatterplotLayer, PolygonLayer, COORDINATE_SYSTEM, OrthographicV
 import { SketchPicker } from 'react-color';
 import pako from 'pako';
 import * as d3 from 'd3';
-//import * as convexHull from './hull.js';
+import * as convexHull from './hull.js';
 import BitmapLayer from './bitmap-layer.js';
 
 const IMAGES = {
@@ -39,7 +39,7 @@ export class MERmaid extends React.Component {
 	super(props);
 	this.state = {
 	    data: [],
-	    //hull: [],
+	    hull: [],
 	    header: ['x','y','gene0'],
 	    options: ['gene0'],
 	    options_selections: {'gene0':['a','b','c']},
@@ -198,24 +198,25 @@ export class MERmaid extends React.Component {
 	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)]})
 
 	    
-	    // // get convex hull for each
-	    // console.log('CONVEX HULLING CELLS')
-	    // //var hull = convexHull(cells)
-	    // var hull = d3.nest()
-	    // 	.key(function(d) { return d[header.indexOf('cell')]; })
-	    // 	.rollup(function(v) {
-	    // 	    return convexHull(v.map(i => [
-	    // 		parseInt(i[header.indexOf('x')]),
-	    // 		parseInt(i[header.indexOf('y')])
-	    // 	    ])
-	    // 			     )
-	    // 	})
-	    // 	.entries(data);
-	    // hull = hull.map(i => i.value);
+	    // get convex hull for each
+	    console.log('CONVEX HULLING CELLS')
+	    //var hull = convexHull(cells)
+	    var hull = d3.nest()
+	    	.key(function(d) { return d[header.indexOf('cell')]; })
+	    	.rollup(function(v) {
+	    	    return convexHull(v.map(i => [
+	    		parseInt(i[header.indexOf('x')]),
+	    		parseInt(i[header.indexOf('y')])
+	    	    ])
+		    )
+	    	})
+	    	.entries(data);
+	    hull = hull.map(i => i.value);
+	    console.log(hull)
 
 	    mythis.setState({
 		data: data,
-		//hull: hull,
+		hull: hull,
 		header: header,
 		options: options,
 		options_selections: opts,
@@ -236,7 +237,7 @@ export class MERmaid extends React.Component {
     renderLayers() {
 	const {
 	    data = this.state.data,
-	    //hull = this.state.hull,
+	    hull = this.state.hull,
 	    header = this.state.header,
 	    options = this.state.options,
 	    
@@ -292,18 +293,18 @@ export class MERmaid extends React.Component {
 		    }
 		]
 	    }),	    
-	    // new PolygonLayer({
-	    // 	id: 'cell-plot',
-	    // 	data: hull,
-	    // 	coordinateSystem: COORDINATE_SYSTEM.IDENTITY, 
-	    // 	pickable: false,
-	    // 	stroked: true,
-	    // 	filled: true,
-	    // 	getPolygon: d => d,
-	    // 	getFillColor: [80, 80, 80, 50],
-	    // 	getLineColor: [80, 80, 80, 80],
-	    // 	getLineWidth: 1
-	    // }),
+	    new PolygonLayer({
+	    	id: 'cell-plot',
+	    	data: hull,
+	    	coordinateSystem: COORDINATE_SYSTEM.IDENTITY, 
+	    	pickable: false,
+	    	stroked: true,
+	    	filled: true,
+	    	getPolygon: d => d,
+	    	getFillColor: [80, 80, 80, 50],
+	    	getLineColor: [80, 80, 80, 80],
+	    	getLineWidth: 1
+	    }),
 	    new ScatterplotLayer({
 		id: 'bg-gene-plot',
 		data: data,
