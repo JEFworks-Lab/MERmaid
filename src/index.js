@@ -162,7 +162,7 @@ export class MERmaid extends React.Component {
 
 	    logTime('setting data');
 	    var header = data.splice(0,1)[0];
-	    var options = header.filter(x => ['x', 'y', 'z'].indexOf(x) < 0 );
+	    var options = header.filter(x => ['x', 'y', 'z','cell','process'].indexOf(x) < 0 );
 	    console.log(options)
 	    
 	    var opts = {};
@@ -212,7 +212,7 @@ export class MERmaid extends React.Component {
 	    	})
 	    	.entries(data);
 	    hull = hull.map(i => i.value);
-	    console.log(hull)
+	    //console.log(hull)
 
 	    mythis.setState({
 		data: data,
