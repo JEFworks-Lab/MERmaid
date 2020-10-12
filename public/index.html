@@ -46,6 +46,19 @@
 	 pointer-events: none;
      }
      
+     .loader {
+	 border: 16px solid #f3f3f3; /* Light grey */
+	 border-top: 16px solid #0080ff; /* Blue */
+	 border-radius: 50%;
+	 width: 120px;
+	 height: 120px;
+	 animation: spin 2s linear infinite;
+     }
+     @keyframes spin {
+	 0% { transform: rotate(0deg); }
+	 100% { transform: rotate(360deg); }
+     }
+     
     </style>
     
   </head>
@@ -56,15 +69,7 @@
     <div id="root">
     </div>
     <div id="tooltip"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <div id="loader" class="loader" style="margin:30px">
+    </div>    
   </body>
 </html>
