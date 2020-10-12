@@ -13,6 +13,12 @@ const IMAGES = {
 };
 const DATA_URL = 'data.csv.gz'
 
+// align with image (manual)
+const DATA_SCALE = 1;
+const dx = 0;
+const dy = 0;
+const dz = 0;
+
 function toRadians(degrees) {
     function toRadian(degree) {
 	return (Math.PI * degree) / 180;
@@ -27,7 +33,7 @@ function updateTooltip({x, y, object}) {
 	tooltip.style.top = `${y}px`;
 	tooltip.style.left = `${x}px`;
 	tooltip.innerHTML = `
-	    <div><div>${object[2]}</div></div>
+	    <div><div>${object}</div></div>
 	    `;
     } else {
 	tooltip.innerHTML = '';
@@ -48,15 +54,19 @@ export class MERmaid extends React.Component {
 	    
 	    SELECTED: {'gene0':''},
 	    SELECTED_COLOR: {'gene0':[0, 128, 255]},
-	    BG_COLOR: [80, 80, 80, 80],
+	    BG_COLOR: [120,120,120,80],
 	    RADIUS: 1,
-	    NUMGENES: 0 // number of extra genes (start at 0 for easy indexing)	   
+	    OPACITY: 0.5,
+	    NUMGENES: 0, // number of extra genes (start at 0 for easy indexing)
+
+	    loading: true
 	};
 
 	this.loadData();
 	this.updateSelectedColor = this.updateSelectedColor.bind(this);
 	this.updateSelection = this.updateSelection.bind(this);
 	this.updateRadius = this.updateRadius.bind(this);
+	this.updateOpacity = this.updateOpacity.bind(this);
 	
 	this.increaseNumGenes = this.increaseNumGenes.bind(this);
 	this.decreaseNumGenes = this.decreaseNumGenes.bind(this);
@@ -66,6 +76,11 @@ export class MERmaid extends React.Component {
 	console.log('UPDATING RADIUS')
 	console.log(rad.target.value)
 	this.setState({ RADIUS: Number(rad.target.value) });
+    }
+    updateOpacity(alpha) {
+	console.log('UPDATING OPACITY')
+	console.log(alpha.target.value)
+	this.setState({ OPACITY: Number(alpha.target.value) });
     }
     updateSelectedColor(color, id) {
 	console.log('UPDATING COLOR')
@@ -84,7 +99,7 @@ export class MERmaid extends React.Component {
 	this.setState({ SELECTED: temp });
     }
     increaseNumGenes() {
-	if(this.state.NUMGENES < 10) {
+	//if(this.state.NUMGENES < 10) {
 	    console.log('INCREASING GENE SELECTION')
 	    var ng = this.state.NUMGENES + 1
 	    console.log(ng)
@@ -103,7 +118,7 @@ export class MERmaid extends React.Component {
 	    this.setState({ SELECTED: tempSelected});
 	    this.setState({ SELECTED_COLOR: tempSelectedColor});	    
 	    this.setState({ NUMGENES: ng });	
-	}
+	//}
     }
     decreaseNumGenes() {
 	if(this.state.NUMGENES > 0) {
@@ -159,10 +174,11 @@ export class MERmaid extends React.Component {
 		    return(d)
 		}
 	    )
-
+	    //data=data.slice(0,1000);
+	    
 	    logTime('setting data');
 	    var header = data.splice(0,1)[0];
-	    var options = header.filter(x => ['x', 'y', 'z','cell','process'].indexOf(x) < 0 );
+	    var options = header.filter(x => ['x', 'y', 'z', 'cell', 'process'].indexOf(x) < 0 );
 	    console.log(options)
 	    
 	    var opts = {};
@@ -182,9 +198,9 @@ export class MERmaid extends React.Component {
 	    logTime('detected options');
 	    console.log(opts);
 	    
-	    var originX = d3.mean(data.map((d) => parseInt(d[header.indexOf('x')])));
-	    var originY = d3.mean(data.map((d) => parseInt(d[header.indexOf('y')])));
-	    var originZ = d3.mean(data.map((d) => parseInt(d[header.indexOf('z')])));
+	    var originX = d3.mean(data.map((d) => parseInt(d[header.indexOf('x')])))/DATA_SCALE;
+	    var originY = d3.mean(data.map((d) => parseInt(d[header.indexOf('y')])))/DATA_SCALE;
+	    var originZ = d3.mean(data.map((d) => parseInt(d[header.indexOf('z')])))/DATA_SCALE;
 	    if( originX === undefined) { originX = 0; }
 	    if( originY === undefined) { originY = 0; }
 	    if( originZ === undefined) { originZ = 0; }
@@ -197,20 +213,23 @@ export class MERmaid extends React.Component {
 	    var selectedColor = {}
 	    options.map((d) => {selectedColor[d]=[Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)]})
 
+	    console.log('SUBSET DATA')
+	    var datasub = data.filter(d => d[header.indexOf('cell')] > 0);
+	    // datasub = datasub.splice(1,3000);
 	    
 	    // get convex hull for each
 	    console.log('CONVEX HULLING CELLS')
 	    //var hull = convexHull(cells)
 	    var hull = d3.nest()
-	    	.key(function(d) { return d[header.indexOf('cell')]; })
+	    	.key(function(d) { return d[header.indexOf('cell')].concat('-', d[header.indexOf('process')]); })
 	    	.rollup(function(v) {
 	    	    return convexHull(v.map(i => [
-	    		parseInt(i[header.indexOf('x')]),
-	    		parseInt(i[header.indexOf('y')])
-	    	    ])
+	    		parseInt(i[header.indexOf('x')])/DATA_SCALE -dx,
+	    		parseInt(i[header.indexOf('y')])/DATA_SCALE -dy
+	    	    ]), 20 //concavity
 		    )
 	    	})
-	    	.entries(data);
+	    	.entries(datasub);
 	    hull = hull.map(i => i.value);
 	    //console.log(hull)
 
@@ -223,9 +242,9 @@ export class MERmaid extends React.Component {
 		origin: origin,
 		num_points: data.length,
 		SELECTED: selected,
-		SELECTED_COLOR: selectedColor
+		SELECTED_COLOR: selectedColor,
+		loading: false
 	    })
-
 	};
 
 	var ccb = (mythis) => ( (data_string) => cb(data_string, mythis) )
@@ -243,6 +262,7 @@ export class MERmaid extends React.Component {
 	    
 	    numgenes = this.state.NUMGENES,
 	    radius = this.state.RADIUS,
+	    opacity = this.state.OPACITY,
 	    selectedColor = this.state.SELECTED_COLOR,
 	    bgColor = this.state.BG_COLOR,
 	    selectedOption = this.state.SELECTED,
@@ -250,10 +270,10 @@ export class MERmaid extends React.Component {
 	} = this.props;	
 	
 	console.log('RENDERING LAYER')
-	console.log(numgenes);
-	console.log(options);
-	console.log(selectedOption);
-	console.log(selectedColor);
+	//console.log(numgenes);
+	//console.log(options);
+	//console.log(selectedOption);
+	//console.log(selectedColor);
 
 	// Helper functions
 	function getColorHelper(d) {
@@ -281,17 +301,18 @@ export class MERmaid extends React.Component {
     
 	return [
 	    new BitmapLayer({
-		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		id: 'bg-layer',
+		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
 		images: Object.values(IMAGES),
 		data: [
 		    {
 			imageUrl: IMAGES.BG,
 			rotation: toRadians([0, 0, 0]),  
-			center: this.state.origin,
-			scale: 2000
+			center: [0,0,-1],
+			scale: 1
 		    }
-		]
+		],
+		opacity: opacity
 	    }),	    
 	    new PolygonLayer({
 	    	id: 'cell-plot',
@@ -301,15 +322,19 @@ export class MERmaid extends React.Component {
 	    	stroked: true,
 	    	filled: true,
 	    	getPolygon: d => d,
-	    	getFillColor: [80, 80, 80, 50],
-	    	getLineColor: [80, 80, 80, 80],
+	    	getFillColor: [80, 80, 80, 60],
+	    	getLineColor: [80, 80, 80, 120],
 	    	getLineWidth: 1
 	    }),
 	    new ScatterplotLayer({
 		id: 'bg-gene-plot',
 		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
-		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
+		getPosition: d => [parseFloat(d[header.indexOf('x')])/DATA_SCALE -dx,
+				   parseFloat(d[header.indexOf('y')])/DATA_SCALE -dy,
+				   0
+				   //parseFloat(d[header.indexOf('z')])/DATA_SCALE -dz
+				   ],
 		getColor: bgColor,
 		getRadius: 1,
 		radiusScale: radius,
@@ -321,7 +346,11 @@ export class MERmaid extends React.Component {
 		id: 'gene-plot',
 		data: data,
 		coordinateSystem: COORDINATE_SYSTEM.IDENTITY,
-		getPosition: d => [parseFloat(d[header.indexOf('x')]), parseFloat(d[header.indexOf('y')]), parseFloat(d[header.indexOf('z')])],
+		getPosition: d => [parseFloat(d[header.indexOf('x')])/DATA_SCALE -dx,
+				   parseFloat(d[header.indexOf('y')])/DATA_SCALE -dy,
+				   0.1 //always on top
+				   //parseFloat(d[header.indexOf('z')])/DATA_SCALE -dz
+				  ],
 		getColor: d => getColorHelper(d),
 		getRadius: d => getRadiusHelper(d),
 		radiusScale: radius,
@@ -337,6 +366,16 @@ export class MERmaid extends React.Component {
     }
 
     render() {
+
+	// spinner
+	if(!this.state.loading) {
+	    const el = document.getElementById('loader')
+	    if (el) {
+		console.log('REMOVING LOADER')
+		el.remove();  // removing the spinner element
+	    }
+	}
+	
 	const styles = reactCSS({
 	    'default': {
 		main: {
@@ -364,7 +403,7 @@ export class MERmaid extends React.Component {
 	for (var i = 0; i <= this.state.NUMGENES; i++) {
 
 	    var idd = 'gene'+i;
-	    console.log(idd)
+	    //console.log(idd)
 	    
  	    var menuString = <Menu
 	    id= {idd}
@@ -395,6 +434,7 @@ export class MERmaid extends React.Component {
 	        <button onClick = {this.decreaseNumGenes}> - </button><button onClick={this.increaseNumGenes}> + </button> 
 	        </div>
 		<div> size: <input type="range" min="0.1" max="5" step="0.1" value={this.state.RADIUS} class="slider" onChange={(value) => this.updateRadius(value)}></input></div>
+		<div> background: <input type="range" min="0" max="1" step="0.1" value={this.state.OPACITY} class="slider" onChange={(value) => this.updateOpacity(value)}></input></div>
 		
 		<hr></hr>
 		{menu}
