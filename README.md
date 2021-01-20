@@ -32,12 +32,13 @@ npm run-script build
 
 ### Optional renaming for Github purposes
 ```
-mv build docs 
+cp build docs
+## rename homepage paths in build if needed
 ```
 
 ## Run without re-building
 ```
-cd docs
+cd build
 # Check python version
 python -V
 # If Python version returned above is 3.X
@@ -51,4 +52,4 @@ Alternatively http://127.0.0.1:8080/
 
 ## Using your own data
 
-Replace the `data.csv.gz` file in the docs/ folder and follow the `Run without re-building` steps above. 
+Replace the `data.csv.gz` file in the build/ folder and follow the `Run without re-building` steps above. 
