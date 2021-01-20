@@ -32,7 +32,7 @@ npm run-script build
 
 ### Optional renaming for Github purposes
 ```
-cp build docs
+cp -r build/ docs/
 ## rename homepage paths in build if needed
 ```
 
