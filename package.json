@@ -4,7 +4,7 @@
 			"homepage": "https://jef.works/MERmaid/",
 			"private": true,
 			"dependencies": {
-						"d3": "^5.7.0",
+						"d3": "^7.6.1",
 						"deck.gl": "^6.1.1",
 						"pako": "^1.0.6",
 						"react": "^16.5.2",
