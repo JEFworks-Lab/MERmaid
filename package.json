@@ -10,7 +10,7 @@
 						"react": "^16.5.2",
 						"react-color": "^2.14.1",
 						"react-dom": "^16.5.2",
-						"react-scripts": "1.1.5",
+						"react-scripts": "5.0.1",
 						"reactcss": "^1.2.3"
 			},
 			"scripts": {
